@@ -17,3 +17,18 @@ jobs:
           registry: docker.pkg.github.com
           repository: okirch/opensuse-devstacks/python-3.6-runtime
           tag_with_ref: true
+
+  build2:
+    name: Push Docker image to GitHub Packages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Push to GitHub Packages
+        uses: docker/build-push-action@v1
+        with:
+          path: python-3.6-devel
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: docker.pkg.github.com
+          repository: okirch/opensuse-devstacks/python-3.6-devel
+          tag_with_ref: true
