@@ -15,6 +15,7 @@ jobs:
         with:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+          file: Dockerfile.python-3.6-runtime
           registry: docker.pkg.github.com
           repository: okirch/opensuse-devstacks/python-3.6-runtime
           tag_with_ref: true
