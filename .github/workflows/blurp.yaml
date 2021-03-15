@@ -4,7 +4,7 @@ on:
     branches:
       - main
 jobs:
-  python_3.6_runtime:
+  python_3_6_runtime:
     name: Push Docker image to GitHub Packages
     runs-on: ubuntu-latest
     steps:
