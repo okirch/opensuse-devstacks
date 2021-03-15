@@ -11,11 +11,8 @@ jobs:
       - name: Push to GitHub Packages
         uses: docker/build-push-action@v1
         with:
-# Not sure how else to do this except with absolute path
-          path: /github/workspace/python-3.6-runtime
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: docker.pkg.github.com
-#         repository: okirch/opensuse-devstacks/python-3.6-runtime
-          repository: okirch/opensuse-devstacks
+          repository: okirch/opensuse-devstacks/python-3.6-runtime
           tag_with_ref: true
