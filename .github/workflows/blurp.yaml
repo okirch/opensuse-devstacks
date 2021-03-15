@@ -4,7 +4,7 @@ on:
     branches:
       - main
 jobs:
-  push_to_registry:
+  python-3.6-runtime:
     name: Push Docker image to GitHub Packages
     runs-on: ubuntu-latest
     steps:
@@ -16,5 +16,5 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: docker.pkg.github.com
-          repository: okirch/python-3.6-runtime
+          repository: okirch/opensuse-devstacks/python-3.6-runtime
           tag_with_ref: true
