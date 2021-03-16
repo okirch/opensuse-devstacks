@@ -29,7 +29,6 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.CR_PAT }}
       - uses: docker/build-push-action@v2
-        needs: prep
         with:
           push: true
           tags: ${{ steps.prep.outputs.tags }}
