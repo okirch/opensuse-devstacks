@@ -15,7 +15,7 @@ jobs:
         run: echo "Workflow is $WORKFLOW aka ${GITHUB_WORKFLOW}"
       - id: prep
         run: |
-          echo ::set-output name=tags::ghcr.io/${github.repository_owner}/${GITHUB_WORKFLOW}:${GITHUB_REF}
+          echo ::set-output name=tags::ghcr.io/${GITHUB_REPOSITORY_OWNER}/${GITHUB_WORKFLOW}:${GITHUB_REF}-${GITHUB_RUN_NUMBER}
       - id: show_release
         env:
           RELEASE: ${{ github.run_number }}
@@ -32,4 +32,3 @@ jobs:
         with:
           push: true
           tags: ghcr.io/okirch/python-3.6-runtime:latest
-#       file: ./docker/image/app/Dockerfile
