@@ -1,5 +1,26 @@
 # vim: set expandtab:
 
+#
+# Github workflow to build container
+#
+# Dockerfile: expected in top-level directory
+#
+# Name of image: taken from the action name given below
+#       We might just as well be able to take it from
+#       $GITHUB_REPOSITORY (which is org_or_user/repo_name)
+#
+# Image version:
+#       Currently a concatenation of the principal package in
+#       this image, concatenated with the run number of this action.
+#       (This would create issues when deleting an action and recreating
+#       it, or when trying to build the same image from another repo -
+#       so handle with care).
+#
+# Registry to push to:
+#       Currently ghcr.io, but other registries could be configured
+#       as well.
+#
+
 name: python-3.6-runtime
 on: push
 jobs:
