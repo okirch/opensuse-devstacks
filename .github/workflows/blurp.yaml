@@ -14,8 +14,11 @@ jobs:
           WORKFLOW: ${{ github.workflow }}
         run: echo "Workflow is $WORKFLOW aka ${GITHUB_WORKFLOW}"
       - id: prep
-        run: |
-          echo ::set-output name=tags::ghcr.io/${GITHUB_REPOSITORY_OWNER}/${GITHUB_WORKFLOW}:${GITHUB_REF}-${GITHUB_RUN_NUMBER}
+        outputs:
+          image_name: ${{ steps.step1.outputs.tags }}
+        steps:
+        - id: step1
+          run: echo "::set-output name=tags::ghcr.io/${GITHUB_REPOSITORY_OWNER}/${GITHUB_WORKFLOW}:${GITHUB_REF}-${GITHUB_RUN_NUMBER}"
       - id: show_release
         env:
           RELEASE: ${{ github.run_number }}
@@ -29,6 +32,7 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.CR_PAT }}
       - uses: docker/build-push-action@v2
+        needs: prep
         with:
           push: true
-          tags: ghcr.io/okirch/python-3.6-runtime:latest
+          tags: ${{ needs.prep.outputs.image_name }}
