@@ -15,7 +15,7 @@ jobs:
         run: echo "Workflow is $WORKFLOW aka ${GITHUB_WORKFLOW}"
       - id: prep
         name: Prepare build
-        run: echo "::set-output name=tags::ghcr.io/${GITHUB_REPOSITORY_OWNER}/${GITHUB_WORKFLOW}:${GITHUB_REF}-${GITHUB_RUN_NUMBER}"
+        run: echo "::set-output name=tags::ghcr.io/${GITHUB_REPOSITORY_OWNER}/${GITHUB_WORKFLOW}:3.6.12-${GITHUB_RUN_NUMBER}"
       - id: show_release
         env:
           RELEASE: ${{ github.run_number }}
