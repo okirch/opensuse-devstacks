@@ -10,11 +10,11 @@ jobs:
 #       run: |
 #         echo ::set-output name=tags::ghcr.io/okirch/python-3.6-runtime:${GITHUB_REF#refs/tags/v}
       - id: show_workflow
-	env: WORKFLOW: ${{ github.workflow }}
+        env: WORKFLOW: ${{ github.workflow }}
         run: |
           echo "Workflow is $WORKFLOW"
       - id: show_release
-	env: RELEASE: ${{ github.run_number }}
+        env: RELEASE: ${{ github.run_number }}
         run: |
           echo "Release is $RELEASE"
       - uses: docker/setup-qemu-action@v1
