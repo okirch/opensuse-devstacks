@@ -1,3 +1,5 @@
+# vim: set expandtab:
+
 name: python-3.6-runtime
 on: push
 jobs:
@@ -10,13 +12,13 @@ jobs:
 #       run: |
 #         echo ::set-output name=tags::ghcr.io/okirch/python-3.6-runtime:${GITHUB_REF#refs/tags/v}
       - id: show_workflow
-        env: WORKFLOW: ${{ github.workflow }}
-        run: |
-          echo "Workflow is $WORKFLOW"
+        env:
+          WORKFLOW: ${{ github.workflow }}
+        run: echo "Workflow is $WORKFLOW"
       - id: show_release
-        env: RELEASE: ${{ github.run_number }}
-        run: |
-          echo "Release is $RELEASE"
+        env:
+          RELEASE: ${{ github.run_number }}
+        run: echo "Release is $RELEASE"
       - uses: docker/setup-qemu-action@v1
       - id: buildx
         uses: docker/setup-buildx-action@v1
