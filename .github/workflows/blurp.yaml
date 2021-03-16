@@ -14,11 +14,8 @@ jobs:
           WORKFLOW: ${{ github.workflow }}
         run: echo "Workflow is $WORKFLOW aka ${GITHUB_WORKFLOW}"
       - id: prep
-        outputs:
-          image_name: ${{ steps.step1.outputs.tags }}
-        steps:
-        - id: step1
-          run: echo "::set-output name=tags::ghcr.io/${GITHUB_REPOSITORY_OWNER}/${GITHUB_WORKFLOW}:${GITHUB_REF}-${GITHUB_RUN_NUMBER}"
+        name: Prepare build
+        run: echo "::set-output name=tags::ghcr.io/${GITHUB_REPOSITORY_OWNER}/${GITHUB_WORKFLOW}:${GITHUB_REF}-${GITHUB_RUN_NUMBER}"
       - id: show_release
         env:
           RELEASE: ${{ github.run_number }}
@@ -35,4 +32,4 @@ jobs:
         needs: prep
         with:
           push: true
-          tags: ${{ needs.prep.outputs.image_name }}
+          tags: ${{ steps.prep.outputs.tags }}
