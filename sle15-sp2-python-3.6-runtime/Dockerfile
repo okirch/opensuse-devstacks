@@ -1,4 +1,4 @@
-FROM sle:15.2
+FROM registry.suse.de/suse/containers/sle-server/15/containers/suse/sle15:15.2
 
 RUN df
 COPY SCC/sles15-sp2.tar.gz /tmp/scc.tar.gz
