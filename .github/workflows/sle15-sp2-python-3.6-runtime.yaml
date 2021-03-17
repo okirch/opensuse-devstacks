@@ -58,3 +58,5 @@ jobs:
           file: ${{ github.workflow }}/Dockerfile
           push: true
           tags: ${{ steps.prep.outputs.tags }}
+          secret-files: |
+            "scc_credentials=./SCCcredentials"

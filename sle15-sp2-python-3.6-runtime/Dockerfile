@@ -3,7 +3,8 @@ FROM registry.suse.com/suse/sle15:15.2
 RUN df
 ADD SCC/sles15-sp2.tar.gz /tmp/scc.tar.gz
 RUN tar -C /etc/zypp -xzf /tmp/scc.tar.gz
-ADD ./SCCcredentials /etc/zypp/credentials.d
+RUN --mount=type=secret,id=scc_credentials \
+  cp /run/secrets/scc_credentials /etc/zypp/credentials.d
 
 RUN zypper in -y python3-base python3-pip python3-setuptools python3-wheel
 
