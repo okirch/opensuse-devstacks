@@ -44,7 +44,6 @@ jobs:
           SCC_CREDS: ${{ secrets.SCC_CREDENTIALS }}
         run: echo "$SCC_CREDS" > SCCcredentials
       - id: verify
-        needs: make-credentials
         run: ls -l SCCcredentials
       - uses: docker/setup-qemu-action@v1
       - id: buildx
