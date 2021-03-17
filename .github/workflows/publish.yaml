@@ -22,7 +22,11 @@
 #
 
 name: python-3.6-runtime
-on: push
+on:
+  release:
+    types: [created]
+  schedule:
+    - cron: '39 6 * * *'
 jobs:
   build:
     name: python-3.6-runtime
