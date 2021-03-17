@@ -3,8 +3,7 @@ FROM registry.suse.com/suse/sle15:15.2
 RUN df
 
 RUN zypper in -y tar gzip
-ADD SCC/sles15-sp2.tar.gz /tmp/scc.tar.gz
-RUN tar -C /etc/zypp -xzf /tmp/scc.tar.gz
+ADD SCC/sles15-sp2.tar.gz /etc/zypp
 RUN --mount=type=secret,id=scc_credentials \
   cp /run/secrets/scc_credentials /etc/zypp/credentials.d
 
