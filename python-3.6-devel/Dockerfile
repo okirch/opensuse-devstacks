@@ -7,4 +7,4 @@ RUN pip3 install --upgrade pip
 
 RUN zypper in -y --no-recommends git gcc glibc-devel
 
-ENTRYPOINT [ "/usr/bin/sleep", "infinity" ]
+ENTRYPOINT [ "/bin/bash" ]

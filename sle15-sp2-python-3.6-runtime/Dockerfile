@@ -11,4 +11,4 @@ RUN pip3 install --upgrade pip
 
 RUN rm -f /etc/zypp/credentials.d/SCCcredentials
 
-ENTRYPOINT [ "/usr/bin/sleep", "infinity" ]
+ENTRYPOINT [ "/bin/bash" ]
