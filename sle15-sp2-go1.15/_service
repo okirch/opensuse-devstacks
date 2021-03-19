@@ -4,7 +4,7 @@
         <param name="file">Dockerfile</param>
         <param name="regex">%%PKG_VERSION%%</param>
         <param name="parse-version">patch</param>
-        <param name="package">java-11-openjdk-devel</param>
+        <param name="package">go1.15</param>
     </service>
     <service mode="buildtime" name="docker_label_helper"/>
 </services>
