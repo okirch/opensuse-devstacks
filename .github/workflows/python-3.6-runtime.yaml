@@ -23,6 +23,7 @@
 
 name: python-3.6-runtime
 on:
+  workflow_dispatch:
   release:
     types: [created]
   schedule:

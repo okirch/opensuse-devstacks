@@ -23,10 +23,7 @@
 
 name: sle15-sp2-python-3.6-runtime
 on:
-  push:
-    branches:
-     - main
-
+  workflow_dispatch:
   release:
     types: [created]
   schedule:
