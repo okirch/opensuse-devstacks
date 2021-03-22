@@ -52,7 +52,6 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/${{ github.workflow }}:latest
             ghcr.io/${{ github.repository_owner }}/${{ github.workflow }}:14-${{ github.run_number }}
-          ${{ steps.prep.outputs.tags }}
           build-args: |
             JAVA_VERSION=14
             BUILDID=${{ github.run_number }}
