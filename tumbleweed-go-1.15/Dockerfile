@@ -1,21 +1,16 @@
-# Defines the tag for OBS and build script builds:
-#!BuildTag: opensuse/go-devel:15
-#!BuildTag: opensuse/go-devel:%%PKG_VERSION%%
-#!BuildTag: opensuse/go-devel:%%PKG_VERSION%%.%RELEASE%
-
 FROM opensuse/tumbleweed
 
-# labelprefix=org.opensuse.java-devel
-PREFIXEDLABEL org.opencontainers.image.title="GO 15 development container"
-PREFIXEDLABEL org.opencontainers.image.description="Environment for GO 15 development"
-PREFIXEDLABEL org.opencontainers.image.created="%BUILDTIME%"
-PREFIXEDLABEL org.opencontainers.image.version="%%PKG_VERSION%%.%RELEASE%"
-PREFIXEDLABEL org.openbuildservice.disturl="%DISTURL%"
-PREFIXEDLABEL org.opensuse.reference="opensuse/go-devel:%%PKG_VERSION%%.%RELEASE%"
+ARG GO_VERSION
+ARG BUILDID
+
+LABEL org.opencontainers.image.title="GO $GO_VERSION development container"
+LABEL org.opencontainers.image.description="Environment for GO $GO_VERSION development"
+LABEL org.opencontainers.image.version="$GO_VERSION-$BUILDID"
+# LABEL org.opensuse.reference="opensuse/go-devel:$GO_VERSION-$BUILDID"
 
 # Work around https://github.com/openSUSE/obs-build/issues/487
 RUN zypper install -y openSUSE-release-appliance-docker
 
 # Development packages
-RUN zypper install -y --no-recommends go1.15 git-core
+RUN zypper install -y --no-recommends go$GO_VERSION git-core
 
