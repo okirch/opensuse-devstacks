@@ -6,14 +6,12 @@
 FROM opensuse/tumbleweed
 
 ARG JAVA_VERSION
+ARG BUILDID
 
-# labelprefix=org.opensuse.java-devel
 LABEL org.opencontainers.image.title="Java $JAVA_VERSION development container"
-# PREFIXEDLABEL org.opencontainers.image.description="Environment for Java $JAVA_VERSION development"
-# PREFIXEDLABEL org.opencontainers.image.created="%BUILDTIME%"
-# PREFIXEDLABEL org.opencontainers.image.version="%%PKG_VERSION%%.%RELEASE%"
-# PREFIXEDLABEL org.openbuildservice.disturl="%DISTURL%"
-# PREFIXEDLABEL org.opensuse.reference="opensuse/java-devel:%%PKG_VERSION%%.%RELEASE%"
+LABEL org.opencontainers.image.description="Environment for Java $JAVA_VERSION development"
+LABEL org.opencontainers.image.version="$JAVA_VERSION.$BUILDID"
+LABEL org.opensuse.reference="opensuse/java-devel:$JAVA_VERSION.$BUILDID"
 
 # Work around https://github.com/openSUSE/obs-build/issues/487
 RUN zypper install -y openSUSE-release-appliance-docker
