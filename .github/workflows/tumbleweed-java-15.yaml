@@ -23,9 +23,9 @@
 
 name: tumbleweed-java-15
 on:
-  push:
-    branches:
-     - main
+# push:
+#   branches:
+#    - main
 
   workflow_dispatch:
   release:
