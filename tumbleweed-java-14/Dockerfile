@@ -5,9 +5,11 @@
 
 FROM opensuse/tumbleweed
 
+ARG JAVA_VERSION
+
 # labelprefix=org.opensuse.java-devel
-# PREFIXEDLABEL org.opencontainers.image.title="Java 14 development container"
-# PREFIXEDLABEL org.opencontainers.image.description="Environment for Java 14 development"
+LABEL org.opencontainers.image.title="Java $JAVA_VERSION development container"
+# PREFIXEDLABEL org.opencontainers.image.description="Environment for Java $JAVA_VERSION development"
 # PREFIXEDLABEL org.opencontainers.image.created="%BUILDTIME%"
 # PREFIXEDLABEL org.opencontainers.image.version="%%PKG_VERSION%%.%RELEASE%"
 # PREFIXEDLABEL org.openbuildservice.disturl="%DISTURL%"
@@ -17,5 +19,5 @@ FROM opensuse/tumbleweed
 RUN zypper install -y openSUSE-release-appliance-docker
 
 # Development packages
-RUN zypper install -y --no-recommends java-14-openjdk-devel maven git-core
+RUN zypper install -y --no-recommends java-$JAVA_VERSION-openjdk-devel maven git-core
 
