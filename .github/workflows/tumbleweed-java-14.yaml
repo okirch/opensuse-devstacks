@@ -54,4 +54,6 @@ jobs:
           file: ${{ github.workflow }}/Dockerfile
           push: true
           tags: ${{ steps.prep.outputs.tags }}
-          build-args: JAVA_VERSION=14 BUILDID=${{ github.run_number }}
+          build-args:
+            - JAVA_VERSION=14
+            - BUILDID=${{ github.run_number }}
