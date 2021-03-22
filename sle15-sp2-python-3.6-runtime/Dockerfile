@@ -1,5 +1,10 @@
 FROM registry.suse.com/suse/sle15:15.2
 
+ARG PYTHON_VERSION
+ARG BUILDID
+
+LABEL org.opencontainers.image.title="Python $PYTHON_VERSION runtime container"
+
 RUN mv /etc/zypp /etc/zypp.save
 ADD SCC/sles15-sp2.tar.gz /etc/zypp
 RUN --mount=type=secret,id=scc_credentials \

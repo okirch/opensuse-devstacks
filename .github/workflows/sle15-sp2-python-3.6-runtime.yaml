@@ -33,9 +33,6 @@ jobs:
     name: build-container
     runs-on: ubuntu-latest
     steps:
-      - id: prep
-        name: Prepare build
-        run: echo "::set-output name=tags::ghcr.io/${GITHUB_REPOSITORY_OWNER}/${GITHUB_WORKFLOW}:3.6.12-${GITHUB_RUN_NUMBER}"
       - id: make-credentials
         env:
           SCC_CREDS: ${{ secrets.SCC_CREDENTIALS }}
@@ -54,6 +51,11 @@ jobs:
         with:
           file: ${{ github.workflow }}/Dockerfile
           push: true
-          tags: ${{ steps.prep.outputs.tags }}
           secret-files: |
             "scc_credentials=./SCCcredentials"
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/${{ github.workflow }}:latest
+            ghcr.io/${{ github.repository_owner }}/${{ github.workflow }}:3.6.12-${{ github.run_number }}
+          build-args: |
+            PYTHON_VERSION=3.6.12
+            BUILDID=${{ github.run_number }}
