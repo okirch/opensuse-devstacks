@@ -55,5 +55,5 @@ jobs:
           push: true
           tags: ${{ steps.prep.outputs.tags }}
           build-args:
-            - JAVA_VERSION=14
-            - BUILDID=${{ github.run_number }}
+            JAVA_VERSION=14
+            BUILDID=${{ github.run_number }}
