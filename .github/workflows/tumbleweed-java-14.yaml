@@ -31,7 +31,7 @@ on:
   release:
     types: [created]
   schedule:
-    - cron: '37 6 * * *'
+    - cron: '38 6 * * *'
 jobs:
   build:
     name: build-container
