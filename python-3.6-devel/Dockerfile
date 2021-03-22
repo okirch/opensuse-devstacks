@@ -1,4 +1,4 @@
-FROM opensuse/leap:latest
+FROM opensuse/leap:15.2
 
 ARG PYTHON_VERSION
 ARG BUILDID
