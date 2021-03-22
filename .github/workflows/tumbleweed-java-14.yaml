@@ -37,10 +37,6 @@ jobs:
     name: build-container
     runs-on: ubuntu-latest
     steps:
-      - id: prep
-        name: Prepare build
-        run: >
-          echo "::set-output name=tags::ghcr.io/${GITHUB_REPOSITORY_OWNER}/${GITHUB_WORKFLOW}:14-${GITHUB_RUN_NUMBER},ghcr.io/${GITHUB_REPOSITORY_OWNER}/${GITHUB_WORKFLOW}:latest"
       - uses: docker/setup-qemu-action@v1
       - id: buildx
         uses: docker/setup-buildx-action@v1
@@ -53,7 +49,10 @@ jobs:
         with:
           file: ${{ github.workflow }}/Dockerfile
           push: true
-          tags: ${{ steps.prep.outputs.tags }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/${{ github.workflow }}:latest
+            ghcr.io/${{ github.repository_owner }}/${{ github.workflow }}:14-${{ github.run_number }}
+          ${{ steps.prep.outputs.tags }}
           build-args: |
             JAVA_VERSION=14
             BUILDID=${{ github.run_number }}
