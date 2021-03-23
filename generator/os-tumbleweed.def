@@ -1,0 +1,5 @@
+BASE_IMAGE([opensuse/tumbleweed])
+define(_OBS_REGISTRY_HOST,[registry.opensuse.org])
+define(_OBS_REGISTRY_NAMESPACE,[opensuse])
+define(_BUILD_SETUP,[# no setup required])
+define(_BUILD_CLEANUP,[# no cleanup required])

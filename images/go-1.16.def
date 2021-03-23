@@ -1,0 +1,13 @@
+IMAGE_COMPATIBLE(tumbleweed, leap-15.2, sle-15.2)
+IMAGE_TITLE([GO 1.16 development container])
+IMAGE_DESCRIPTION([Environment for GO 1.16 development])
+IMAGE_TAG(go-devel)
+IMAGE_VERSION(1.16)
+
+BUILD_INSTRUCTIONS([
+# Work around https://github.com/openSUSE/obs-build/issues/487
+RUN zypper install -y openSUSE-release-appliance-docker
+
+# Development packages
+RUN zypper install -y --no-recommends go1.16 git-core
+])
