@@ -9,5 +9,5 @@ BUILD_INSTRUCTIONS([
 RUN zypper install -y openSUSE-release-appliance-docker
 
 # Development packages
-RUN zypper install -y --no-recommends java-11-openjdk-devel maven git-core
+RUN zypper install -y --no-recommends osc java-11-openjdk-devel maven git-core
 ])
