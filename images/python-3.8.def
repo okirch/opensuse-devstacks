@@ -1,4 +1,4 @@
-IMAGE_COMPATIBLE(tumbleweed, leap-15.2, sle-15.2)
+IMAGE_COMPATIBLE(tumbleweed)
 IMAGE_TITLE([Python 3.8 container])
 IMAGE_DESCRIPTION([Environment for Python 3.8])
 IMAGE_TAG(python-devel)
