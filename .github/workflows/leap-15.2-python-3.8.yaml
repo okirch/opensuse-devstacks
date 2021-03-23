@@ -22,7 +22,7 @@
 #       as well.
 #
 
-name: tumbleweed-java-14
+name: leap-15.2-python-3.8
 on:
   workflow_dispatch:
   release:
@@ -54,8 +54,8 @@ jobs:
           push: true
           tags: |
             ghcr.io/${{ github.repository_owner }}/${{ github.workflow }}:latest
-            ghcr.io/${{ github.repository_owner }}/${{ github.workflow }}:14-${{ github.run_number }}
+            ghcr.io/${{ github.repository_owner }}/${{ github.workflow }}:3.8-${{ github.run_number }}
             ${{ secrets.DOCKER_USER }}/${{ github.workflow }}:latest
-            ${{ secrets.DOCKER_USER }}/${{ github.workflow }}:14-${{ github.run_number }}
+            ${{ secrets.DOCKER_USER }}/${{ github.workflow }}:3.8-${{ github.run_number }}
           build-args: |
             BUILDID=${{ github.run_number }}

@@ -1,3 +1,4 @@
+
 # vim: set expandtab:
 
 #
@@ -23,15 +24,11 @@
 
 name: tumbleweed-java-16
 on:
-# push:
-#   branches:
-#    - main
-
   workflow_dispatch:
   release:
     types: [created]
   schedule:
-    - cron: '40 6 * * *'
+    - cron: '0 6 * * *'
 jobs:
   build:
     name: build-container
@@ -53,13 +50,12 @@ jobs:
           password: ${{ secrets.DOCKER_PAT }}
       - uses: docker/build-push-action@v2
         with:
-          file: ${{ github.workflow }}/Dockerfile
+          file: .genfiles/standalone/${{ github.workflow }}/Dockerfile
           push: true
           tags: |
             ghcr.io/${{ github.repository_owner }}/${{ github.workflow }}:latest
             ghcr.io/${{ github.repository_owner }}/${{ github.workflow }}:16-${{ github.run_number }}
-            okir/tumbleweed-java:latest
-            okir/tumbleweed-java:16-${{ github.run_number }}
+            ${{ secrets.DOCKER_USER }}/${{ github.workflow }}:latest
+            ${{ secrets.DOCKER_USER }}/${{ github.workflow }}:16-${{ github.run_number }}
           build-args: |
-            JAVA_VERSION=16
             BUILDID=${{ github.run_number }}

@@ -22,7 +22,7 @@
 #       as well.
 #
 
-name: tumbleweed-java-14
+name: leap-15.2-java-14
 on:
   workflow_dispatch:
   release:

@@ -1,3 +1,4 @@
+
 # vim: set expandtab:
 
 #
@@ -21,13 +22,13 @@
 #       as well.
 #
 
-name: python-3.6-runtime
+name: tumbleweed-go-1.16
 on:
   workflow_dispatch:
   release:
     types: [created]
   schedule:
-    - cron: '39 6 * * *'
+    - cron: '0 6 * * *'
 jobs:
   build:
     name: build-container
@@ -49,12 +50,12 @@ jobs:
           password: ${{ secrets.DOCKER_PAT }}
       - uses: docker/build-push-action@v2
         with:
-          file: ${{ github.workflow }}/Dockerfile
+          file: .genfiles/standalone/${{ github.workflow }}/Dockerfile
           push: true
           tags: |
             ghcr.io/${{ github.repository_owner }}/${{ github.workflow }}:latest
-            ghcr.io/${{ github.repository_owner }}/${{ github.workflow }}:3.6.12-${{ github.run_number }}
-            okir/leap-15.2-python:3.6-${{ github.run_number }}
+            ghcr.io/${{ github.repository_owner }}/${{ github.workflow }}:1.16-${{ github.run_number }}
+            ${{ secrets.DOCKER_USER }}/${{ github.workflow }}:latest
+            ${{ secrets.DOCKER_USER }}/${{ github.workflow }}:1.16-${{ github.run_number }}
           build-args: |
-            PYTHON_VERSION=3.6.12
             BUILDID=${{ github.run_number }}

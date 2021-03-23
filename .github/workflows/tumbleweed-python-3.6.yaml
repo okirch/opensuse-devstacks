@@ -1,3 +1,4 @@
+
 # vim: set expandtab:
 
 #
@@ -27,7 +28,7 @@ on:
   release:
     types: [created]
   schedule:
-    - cron: '41 6 * * *'
+    - cron: '0 6 * * *'
 jobs:
   build:
     name: build-container
@@ -47,19 +48,14 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PAT }}
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Generate Dockerfile
-        run: ./generator.sh --base-os tumbleweed --output-file Dockerfile python-3.6 && ls -l
-      - name: Huh
-        run: ls -l
       - uses: docker/build-push-action@v2
         with:
+          file: .genfiles/standalone/${{ github.workflow }}/Dockerfile
           push: true
           tags: |
             ghcr.io/${{ github.repository_owner }}/${{ github.workflow }}:latest
             ghcr.io/${{ github.repository_owner }}/${{ github.workflow }}:3.6-${{ github.run_number }}
-            okir/tumbleweed-python:3.6-${{ github.run_number }}
+            ${{ secrets.DOCKER_USER }}/${{ github.workflow }}:latest
+            ${{ secrets.DOCKER_USER }}/${{ github.workflow }}:3.6-${{ github.run_number }}
           build-args: |
-            PYTHON_VERSION=3.6
             BUILDID=${{ github.run_number }}
