@@ -42,7 +42,7 @@ define([IMAGE_COMPATIBLE],[
  ])
 ])
 
-include(IMAGE_DEF)dnl
+include(_IMAGE_DEF_PATH)dnl
 
 ifdef([_BASE_OS],[
  define([_IMAGE_INCLUDE],_GENERATOR_BASEDIR[/os-]_BASE_OS[.def])

@@ -5,8 +5,8 @@ dnl
 dnl ############################################################
 dnl Output starts here
 dnl ############################################################
-dnl Using an unquoted # would prevent the expansion of IMAGE_DEF
-[#] Dockerfile generated from IMAGE_DEF
+dnl Using an unquoted # would prevent the expansion of _IMAGE_DEF_PATH
+[#] Dockerfile generated from _IMAGE_DEF_PATH
 FROM _OBS_REGISTRY_HOST/_BASE_IMAGE
 
 ARG BUILDID=0

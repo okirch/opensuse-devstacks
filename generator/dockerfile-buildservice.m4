@@ -5,8 +5,8 @@ dnl
 dnl ############################################################
 dnl Output starts here
 dnl ############################################################
-dnl Using an unquoted # would prevent the expansion of IMAGE_DEF
-[#] Dockerfile generated from IMAGE_DEF
+dnl Using an unquoted # would prevent the expansion of _IMAGE_DEF_PATH
+[#] Dockerfile generated from _IMAGE_DEF_PATH
 #
 Tag is _IMAGE_TAG
 # Defines the tag for OBS and build script builds:

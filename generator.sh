@@ -62,7 +62,7 @@ function generate_one {
 
 	echo "Generating $outfile for $image on $os"
 
-	m4 -d -DIMAGE_DEF=images/$image.def -D_BASE_OS=$os $m4_script >$outfile
+	m4 -d -D_IMAGE_DEF_PATH=images/$image.def -D_BASE_OS=$os $m4_script >$outfile
 }
 
 eval set -- $(getopt -n $PROGNAME -l base-os:,environment:,target:,output-dir:,output-file: -o "b:e:t:" -- "$@")
@@ -119,7 +119,7 @@ fi
 
 for image_id; do
 	if [ $opt_base_os = all ]; then
-		for os in $(m4 -d -DIMAGE_DEF=images/$image_id.def generator/compatible.m4); do
+		for os in $(m4 -d -D_IMAGE_DEF_PATH=images/$image_id.def generator/compatible.m4); do
 			generate_one $image_id $os $generator_file $generated_file
 		done
 	else
