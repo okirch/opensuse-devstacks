@@ -53,4 +53,11 @@ ifdef([_IMAGE_TAG],dnl
 [#]!BuildTag: _OBS_REGISTRY_NAMESPACE/_IMAGE_TAG:%%PKG_VERSION%%.%RELEASE%
 )])
 
+define([__PRINT_LIST],[dnl
+ifelse(dnl
+    [$#],0,[],
+    [$#],1,[$1 ],
+    [$1 __PRINT_LIST(shift($@))])dnl
+])
+
 divert(0)dnl
