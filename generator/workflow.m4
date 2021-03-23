@@ -37,6 +37,12 @@ jobs:
     name: build-container
     runs-on: ubuntu-latest
     steps:
+      - id: Create credentials for - only needed for SLE
+        env:
+          SCC_CREDS: ${{ secrets.SCC_CREDENTIALS }}
+        run: echo "$SCC_CREDS" > SCCcredentials
+      - id: verify
+        run: ls -l SCCcredentials
       - uses: docker/setup-qemu-action@v1
       - id: buildx
         uses: docker/setup-buildx-action@v1
@@ -62,3 +68,4 @@ jobs:
             ${{ secrets.DOCKER_USER }}/${{ github.workflow }}:_IMAGE_VERSION-${{ github.run_number }}
           build-args: |
             BUILDID=${{ github.run_number }}
+
