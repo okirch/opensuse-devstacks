@@ -38,13 +38,13 @@ opt_target=dockerfile
 opt_outdir=output
 opt_outfile=
 opt_outfile_used=0
+opt_outfile_format=".genfiles/%ENVIRONMENT/%OS/%IMAGE/unknown"
 
 function generate_one {
 
 	image=$1
 	os=$2
 	m4_script=$3
-	outfile=$4
 
 	if [ -n "$opt_outfile" ]; then
 		if [ $opt_outfile_used -gt 0 ]; then
@@ -54,10 +54,8 @@ function generate_one {
 		outfile="$opt_outfile"
 		opt_outfile_used=1
 	else
-		dir="$opt_outdir/$os-$image"
-		mkdir -p $dir
-
-		outfile="$dir/$outfile"
+		outfile=$(echo $opt_outfile_format | sed -e "s:%OS:$os:" -e "s:%IMAGE:$image:" -e "s:%ENVIRONMENT:$opt_environment:")
+		mkdir -p $(dirname $outfile)
 	fi
 
 	echo "Generating $outfile for $image on $os"
@@ -107,7 +105,11 @@ fi
 
 case $opt_target in
 dockerfile)
-	generated_file=Dockerfile;;
+	opt_outfile_format=".genfiles/%ENVIRONMENT/%OS-%IMAGE/Dockerfile"
+	: ;;
+workflow)
+	opt_outfile_format=".genfiles/%ENVIRONMENT/%OS-%IMAGE.yaml"
+	: ;;
 *)
 	echo "Don't know how to generate $opt_target" >&2
 	exit 1;;
@@ -120,9 +122,9 @@ fi
 for image_id; do
 	if [ $opt_base_os = all ]; then
 		for os in $(m4 -d -D_IMAGE_DEF_PATH=images/$image_id.def generator/compatible.m4); do
-			generate_one $image_id $os $generator_file $generated_file
+			generate_one $image_id $os $generator_file
 		done
 	else
-		generate_one $image_id $opt_base_os $generator_file $generated_file
+		generate_one $image_id $opt_base_os $generator_file
 	fi
 done
