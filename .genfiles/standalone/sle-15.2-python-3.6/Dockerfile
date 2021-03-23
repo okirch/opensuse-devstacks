@@ -14,8 +14,10 @@ RUN --mount=type=secret,id=scc_credentials \
   cp /run/secrets/scc_credentials /etc/zypp/credentials.d/SCCcredentials
 
 
-# For some inexplicable reasons, this will also pull in python38-base right now...
-RUN zypper in -y python36-base python36-pip python36-setuptools python36-wheel
+RUN zypper in -y python3-base python3-pip python3-setuptools python3-wheel
+
+# pip package is woefully outdated
+RUN pip3 install --upgrade pip
 
 
 

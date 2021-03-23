@@ -6,14 +6,15 @@ define([IMAGE_DESCRIPTION], [define([_IMAGE_DESCRIPTION],$1)]) dnl
 define([IMAGE_VERSION], [define([_IMAGE_VERSION],$1)]) dnl
 define([IMAGE_TAG], [define([_IMAGE_TAG],$1)]) dnl
 define([BUILD_INSTRUCTIONS], [
+	dnl This macro will accept one or two arguments
+	dnl one argument: define instructions for all base images
+	dnl two arguments: define instructions only if $1 matches the base OS
 	ifelse($#,[1],[
-	    dnl Just one argument: define instructions for all base images
 	    define([_BUILD_INSTRUCTIONS],$1)
 	],
-	dnl else: define instructions only if $1 matches the base OS
-	_BASE_OS_ID,[$1],
+	_BASE_OS_ID,$1,[
 	define([_BUILD_INSTRUCTIONS],$2)
-	)
+	])
 ]) dnl
 define([_BUILD_INSTRUCTIONS],[# No build instructions defined for this base image.])
 
