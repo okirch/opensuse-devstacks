@@ -36,6 +36,8 @@ opt_base_os=tumbleweed
 opt_environment=standalone
 opt_target=dockerfile
 opt_outdir=output
+opt_outfile=
+opt_outfile_used=0
 
 function generate_one {
 
@@ -44,16 +46,26 @@ function generate_one {
 	m4_script=$3
 	outfile=$4
 
-	dir="$opt_outdir/$os-$image"
-	mkdir -p $dir
+	if [ -n "$opt_outfile" ]; then
+		if [ $opt_outfile_used -gt 0 ]; then
+			echo "You cannot specifiy --outfile when generating multiple files" >&2
+			exit 1
+		fi
+		outfile="$opt_outfile"
+		opt_outfile_used=1
+	else
+		dir="$opt_outdir/$os-$image"
+		mkdir -p $dir
+
+		outfile="$dir/$outfile"
+	fi
 
 	echo "Generating $outfile for $image on $os"
-	outfile="$dir/$outfile"
 
 	m4 -d -DIMAGE_DEF=images/$image.def -D_BASE_OS=$os $m4_script >$outfile
 }
 
-eval set -- $(getopt -n $PROGNAME -l base-os:,environment:,target:,output-dir: -o "b:e:t:" -- "$@")
+eval set -- $(getopt -n $PROGNAME -l base-os:,environment:,target:,output-dir:,output-file: -o "b:e:t:" -- "$@")
 while [ $# -gt 0 ]; do
 	arg=$1; shift
 	if [ "$arg" = "--" ]; then
@@ -70,8 +82,11 @@ while [ $# -gt 0 ]; do
 	--target|-t)
 		opt_target=$1
 		shift;;
-	--output-dir|-o)
+	--output-dir)
 		opt_outdir=$1
+		shift;;
+	--output-file)
+		opt_outfile=$1
 		shift;;
 	*)
 		echo "Unknown option $arg" >&2
