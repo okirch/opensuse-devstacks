@@ -108,7 +108,7 @@ dockerfile)
 	opt_outfile_format=".genfiles/%ENVIRONMENT/%OS-%IMAGE/Dockerfile"
 	: ;;
 workflow)
-	opt_outfile_format=".genfiles/%ENVIRONMENT/%OS-%IMAGE.yaml"
+	opt_outfile_format=".github/workflows/%OS-%IMAGE.yaml"
 	: ;;
 *)
 	echo "Don't know how to generate $opt_target" >&2
