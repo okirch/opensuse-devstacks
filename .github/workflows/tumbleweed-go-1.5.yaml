@@ -54,6 +54,8 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/${{ github.workflow }}:latest
             ghcr.io/${{ github.repository_owner }}/${{ github.workflow }}:1.15-${{ github.run_number }}
+            okir/tumbleweed-go:latest
+            okir/tumbleweed-go:1.15-${{ github.run_number }}
           build-args: |
             GO_VERSION=1.15
             BUILDID=${{ github.run_number }}

@@ -62,6 +62,7 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/${{ github.workflow }}:latest
             ghcr.io/${{ github.repository_owner }}/${{ github.workflow }}:3.6.12-${{ github.run_number }}
+            okir/sle15-sp2-python:3.6-${{ github.run_number }}
           build-args: |
             PYTHON_VERSION=3.6.12
             BUILDID=${{ github.run_number }}
