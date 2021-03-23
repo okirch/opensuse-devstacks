@@ -30,20 +30,25 @@ define([__CHECK_COMPAT],[
 ])
 __CHECK_COMPAT(_IMAGE_COMPAT)
 define([IMAGE_COMPATIBLE],[
- undef([_COMPAT_MATCH])
- __CHECK_COMPAT($@)
- ifdef([_COMPAT_MATCH],,
-  [errprint(Error: Base OS _BASE_OS not in list of compatible operating systems
-  )
-  m4exit(1)]
- )
+ define([_COMPAT_OS_LIST],[$@])
+ ifdef([_BASE_OS],[
+   undef([_COMPAT_MATCH])
+   __CHECK_COMPAT($@)
+   ifdef([_COMPAT_MATCH],,
+    [errprint(Error: Base OS _BASE_OS not in list of compatible operating systems
+    )
+    m4exit(1)]
+   )
+ ])
 ])
 
 include(IMAGE_DEF)dnl
 
 define([_IMAGE_ID],translit(_BASE_IMAGE,/,_))
-define([_IMAGE_INCLUDE],_GENERATOR_BASEDIR[/os-]_BASE_OS[.def])
-include(_IMAGE_INCLUDE)
+ifdef([_BASE_OS],[
+ define([_IMAGE_INCLUDE],_GENERATOR_BASEDIR[/os-]_BASE_OS[.def])
+ include(_IMAGE_INCLUDE)
+])
 
 
 define([_OBS_BUILD_TAGS],[dnl
