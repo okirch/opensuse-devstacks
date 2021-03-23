@@ -3,6 +3,7 @@ IMAGE_TITLE([Java 11 development container])
 IMAGE_DESCRIPTION([Environment for Java 11 development])
 IMAGE_TAG(java-devel)
 IMAGE_VERSION(11)
+IMAGE_MAIN_PACKAGE([java-11-openjdk-devel])
 
 BUILD_INSTRUCTIONS([
 # Work around https://github.com/openSUSE/obs-build/issues/487

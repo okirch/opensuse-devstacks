@@ -107,6 +107,9 @@ case $opt_target in
 dockerfile)
 	opt_outfile_format=".genfiles/%ENVIRONMENT/%OS-%IMAGE/Dockerfile"
 	: ;;
+_service)
+	opt_outfile_format=".genfiles/%ENVIRONMENT/%OS-%IMAGE/_service"
+	: ;;
 workflow)
 	opt_outfile_format=".github/workflows/%OS-%IMAGE.yaml"
 	: ;;

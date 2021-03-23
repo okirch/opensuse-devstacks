@@ -5,6 +5,8 @@ define([IMAGE_TITLE], [define([_IMAGE_TITLE],$1)]) dnl
 define([IMAGE_DESCRIPTION], [define([_IMAGE_DESCRIPTION],$1)]) dnl
 define([IMAGE_VERSION], [define([_IMAGE_VERSION],$1)]) dnl
 define([IMAGE_TAG], [define([_IMAGE_TAG],$1)]) dnl
+define([IMAGE_MAIN_PACKAGE], [define([_IMAGE_MAIN_PACKAGE],$1)]) dnl
+dnl define([_IMAGE_MAIN_PACKAGE],[errprint([IMAGE_MAIN_PACKAGE] not set)])
 define([BUILD_INSTRUCTIONS], [
 	dnl This macro will accept one or two arguments
 	dnl one argument: define instructions for all base images

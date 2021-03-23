@@ -3,6 +3,7 @@ IMAGE_TITLE([Java 14 development container])
 IMAGE_DESCRIPTION([Environment for Java 14 development])
 IMAGE_TAG(java-devel)
 IMAGE_VERSION(14)
+IMAGE_MAIN_PACKAGE([java-14-openjdk-devel])
 
 BUILD_INSTRUCTIONS([
 # Work around https://github.com/openSUSE/obs-build/issues/487

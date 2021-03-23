@@ -3,6 +3,7 @@ IMAGE_TITLE([GO 1.15 development container])
 IMAGE_DESCRIPTION([Environment for GO 1.15 development])
 IMAGE_TAG(go-devel)
 IMAGE_VERSION(1.15)
+IMAGE_MAIN_PACKAGE(go1.15)
 
 BUILD_INSTRUCTIONS([
 # Work around https://github.com/openSUSE/obs-build/issues/487
