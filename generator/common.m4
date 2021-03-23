@@ -11,14 +11,14 @@ define([BUILD_INSTRUCTIONS], [
 	    define([_BUILD_INSTRUCTIONS],$1)
 	],
 	dnl else: define instructions only if $1 matches the base OS
-	_BASE_OS,[$1],
+	_BASE_OS_ID,[$1],
 	define([_BUILD_INSTRUCTIONS],$2)
 	)
 ]) dnl
 define([_BUILD_INSTRUCTIONS],[# No build instructions defined for this base image.])
 
 define([__CHECK_COMPAT],[
- ifelse([$1],_BASE_OS,[
+ ifelse([$1],_BASE_OS_ID,[
  	  define([_COMPAT_MATCH],$1)
 	],
  	$#,1,[
@@ -31,22 +31,25 @@ define([__CHECK_COMPAT],[
 __CHECK_COMPAT(_IMAGE_COMPAT)
 define([IMAGE_COMPATIBLE],[
  define([_COMPAT_OS_LIST],[$@])
- ifdef([_BASE_OS],[
+ ifdef([_BASE_OS_ID],[
    undef([_COMPAT_MATCH])
    __CHECK_COMPAT($@)
    ifdef([_COMPAT_MATCH],,
-    [errprint(Error: Base OS _BASE_OS not in list of compatible operating systems
+    [errprint(Error: Base OS _BASE_OS_ID not in list of compatible operating systems
     )
     m4exit(1)]
    )
  ])
 ])
 
-include(_IMAGE_DEF_PATH)dnl
+ifdef([_IMAGE_ID],[
+ define([_IMAGE_DEF_PATH],_GENERATOR_BASEDIR[/../images/]_IMAGE_ID[.def])
+ include(_IMAGE_DEF_PATH)dnl
+])
 
-ifdef([_BASE_OS],[
- define([_IMAGE_INCLUDE],_GENERATOR_BASEDIR[/os-]_BASE_OS[.def])
- include(_IMAGE_INCLUDE)
+ifdef([_BASE_OS_ID],[
+ define([_OS_DEF_PATH],_GENERATOR_BASEDIR[/os-]_BASE_OS_ID[.def])
+ include(_OS_DEF_PATH)
 ])
 
 
