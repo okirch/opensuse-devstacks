@@ -49,10 +49,10 @@ jobs:
           password: ${{ secrets.DOCKER_PAT }}
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Huh
-        run: ls -l && chmod +x ./generator.sh
       - name: Generate Dockerfile
-        run: ./generator.sh --base-os tumbleweed --output-file Dockerfile python-3.6
+        run: ./generator.sh --base-os tumbleweed --output-file Dockerfile python-3.6 && ls -l
+      - name: Huh
+        run: ls -l
       - uses: docker/build-push-action@v2
         with:
           push: true
