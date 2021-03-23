@@ -47,6 +47,8 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PAT }}
+      - name: Huh
+        run: ls -l && chmod +x ./generator.sh
       - name: Generate Dockerfile
         run: ./generator.sh --base-os tumbleweed --output-file Dockerfile python-3.6
       - uses: docker/build-push-action@v2
