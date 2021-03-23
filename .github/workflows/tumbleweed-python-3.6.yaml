@@ -47,6 +47,8 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PAT }}
+      - name: Checkout
+        uses: actions/checkout@v2
       - name: Huh
         run: ls -l && chmod +x ./generator.sh
       - name: Generate Dockerfile
