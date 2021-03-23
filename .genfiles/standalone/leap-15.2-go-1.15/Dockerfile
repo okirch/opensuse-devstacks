@@ -1,5 +1,5 @@
 # Dockerfile generated from generator/../images/go-1.15.def
-FROM _OBS_REGISTRY_HOST/suse/leap:15.2
+FROM registry.opensuse.org/opensuse/leap:15.2
 
 ARG BUILDID=0
 

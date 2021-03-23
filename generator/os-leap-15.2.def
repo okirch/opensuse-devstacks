@@ -1,10 +1,10 @@
-BASE_IMAGE([suse/leap:15.2])
+BASE_IMAGE([opensuse/leap:15.2])
 dnl
 dnl The current namespace setup on registry.opensuse.org does not
 dnl distinguish between eg java-devel based on Tumbleweed vs a
 dnl java-devel image based on Leap
 dnl 
-dnl define(_OBS_REGISTRY_HOST,[registry.opensuse.org])
+define(_OBS_REGISTRY_HOST,[registry.opensuse.org])
 dnl define(_OBS_REGISTRY_NAMESPACE,[opensuse])
 define(_BUILD_SETUP,[# no setup required])
 define(_BUILD_CLEANUP,[# no cleanup required])
