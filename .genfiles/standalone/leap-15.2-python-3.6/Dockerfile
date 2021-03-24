@@ -7,7 +7,10 @@ LABEL org.opencontainers.image.title="Python 3.6 container"
 LABEL org.opencontainers.image.description="Environment for Python 3.6"
 LABEL org.opencontainers.image.version="3.6-$BUILDID"
 
-# no setup required
+
+# Work around https://github.com/openSUSE/obs-build/issues/487
+RUN zypper install -y openSUSE-release-appliance-docker
+
 
 RUN zypper in -y python3-base python3-pip python3-setuptools python3-wheel
 

@@ -13,6 +13,9 @@ ADD SCC/sles15-sp2.tar.gz /etc/zypp
 RUN --mount=type=secret,id=scc_credentials \
   cp /run/secrets/scc_credentials /etc/zypp/credentials.d/SCCcredentials
 
+# Work around https://github.com/openSUSE/obs-build/issues/487
+RUN zypper install -y sles-release
+
 
 RUN zypper in -y python3-base python3-pip python3-setuptools python3-wheel
 

@@ -13,9 +13,9 @@ ADD SCC/sles15-sp2.tar.gz /etc/zypp
 RUN --mount=type=secret,id=scc_credentials \
   cp /run/secrets/scc_credentials /etc/zypp/credentials.d/SCCcredentials
 
-
 # Work around https://github.com/openSUSE/obs-build/issues/487
-RUN zypper install -y openSUSE-release-appliance-docker
+RUN zypper install -y sles-release
+
 
 # Development packages
 RUN zypper install -y --no-recommends osc java-11-openjdk-devel maven git-core

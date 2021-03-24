@@ -6,9 +6,6 @@ IMAGE_VERSION(14)
 IMAGE_MAIN_PACKAGE([java-14-openjdk-devel])
 
 BUILD_INSTRUCTIONS([
-# Work around https://github.com/openSUSE/obs-build/issues/487
-RUN zypper install -y openSUSE-release-appliance-docker
-
 # Development packages
 RUN zypper install -y --no-recommends java-14-openjdk-devel maven git-core
 ])
