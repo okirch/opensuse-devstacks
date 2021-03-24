@@ -37,7 +37,7 @@ jobs:
     name: build-container
     runs-on: ubuntu-latest
     steps:
-ifdef(_BASE_OS_SLE,`dnl
+ifdef(`_BASE_OS_SLE',`dnl
       - name: Create credentials for SLE
         env:
           SCC_CREDS: ${{ secrets.SCC_CREDENTIALS }}
@@ -63,7 +63,7 @@ ifdef(_BASE_OS_SLE,`dnl
         with:
           file: .genfiles/standalone/${{ github.workflow }}/Dockerfile
           push: true
-ifdef(_BASE_OS_SLE,`dnl
+ifdef(`_BASE_OS_SLE',`dnl
           secret-files: |
             "scc_credentials=./SCCcredentials"
 ')dnl
