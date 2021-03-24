@@ -61,6 +61,8 @@ jobs:
         with:
           file: .genfiles/standalone/${{ github.workflow }}/Dockerfile
           push: true
+          secret-files: |
+            "scc_credentials=./SCCcredentials"
           tags: |
             ghcr.io/${{ github.repository_owner }}/${{ github.workflow }}:latest
             ghcr.io/${{ github.repository_owner }}/${{ github.workflow }}:_IMAGE_VERSION-${{ github.run_number }}
