@@ -107,7 +107,7 @@ case $opt_target in
 dockerfile)
 	case $opt_environment in
 	buildservice)
-		opt_outfile_format="%OS-%IMAGE/Dockerfile";;
+		opt_outfile_format="%ENVIRONMENT/%OS-%IMAGE/Dockerfile";;
 	*)
 		opt_outfile_format=".genfiles/%ENVIRONMENT/%OS-%IMAGE/Dockerfile";;
 	esac
@@ -115,7 +115,7 @@ dockerfile)
 _service)
 	case $opt_environment in
 	buildservice)
-		opt_outfile_format="%OS-%IMAGE/_service";;
+		opt_outfile_format="%ENVIRONMENT/%OS-%IMAGE/_service";;
 	*)
 		echo "Don't know how to create a _service file for environment $opt_environment" >&2
 		exit 1
