@@ -1,0 +1,10 @@
+IMAGE_COMPATIBLE(tumbleweed)
+IMAGE_TITLE([Ruby 2.7 container])
+IMAGE_DESCRIPTION([Environment for Ruby 2.7])
+IMAGE_TAG(python-devel)
+IMAGE_VERSION(2.7)
+
+BUILD_INSTRUCTIONS([
+RUN zypper in -y ruby-2.7 ruby2.7-rubygem-bundler ruby-devel
+RUN zypper in -y git-core patch make gcc
+])

@@ -100,6 +100,24 @@ This is the table of images currently available:
      <td><a href="https://hub.docker.com/repository/docker/okir/tumbleweed-python-3.8">tumbleweed-python-3.8</a></td>
 </tr>
 <tr>
+ <td>ruby-2.5</td>
+ <!-- leap-15.2 -->
+     <td><a href="https://hub.docker.com/repository/docker/okir/leap-15.2-ruby-2.5">leap-15.2-ruby-2.5</a></td>
+ <!-- sle-15.2 -->
+    	     <td><a href="https://hub.docker.com/repository/docker/okir/sle-15.2-ruby-2.5">sle-15.2-ruby-2.5</a></td>
+ <!-- tumbleweed -->
+    	     <td>n/a</td>
+</tr>
+<tr>
+ <td>ruby-2.7</td>
+ <!-- leap-15.2 -->
+     <td>n/a</td>
+ <!-- sle-15.2 -->
+     <td>n/a</td>
+ <!-- tumbleweed -->
+     <td><a href="https://hub.docker.com/repository/docker/okir/tumbleweed-ruby-2.7">tumbleweed-ruby-2.7</a></td>
+</tr>
+<tr>
  <td>rust</td>
  <!-- leap-15.2 -->
      <td>n/a</td>
