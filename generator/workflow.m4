@@ -37,7 +37,7 @@ jobs:
     name: build-container
     runs-on: ubuntu-latest
     steps:
-      - id: Create credentials for - only needed for SLE
+      - id: Create credentials for SLE
         env:
           SCC_CREDS: ${{ secrets.SCC_CREDENTIALS }}
         run: echo "$SCC_CREDS" > SCCcredentials
