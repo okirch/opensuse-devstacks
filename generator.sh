@@ -105,13 +105,30 @@ fi
 
 case $opt_target in
 dockerfile)
-	opt_outfile_format=".genfiles/%ENVIRONMENT/%OS-%IMAGE/Dockerfile"
+	case $opt_environment in
+	buildservice)
+		opt_outfile_format="%OS-%IMAGE/Dockerfile";;
+	*)
+		opt_outfile_format=".genfiles/%ENVIRONMENT/%OS-%IMAGE/Dockerfile";;
+	esac
 	: ;;
 _service)
-	opt_outfile_format=".genfiles/%ENVIRONMENT/%OS-%IMAGE/_service"
+	case $opt_environment in
+	buildservice)
+		opt_outfile_format="%OS-%IMAGE/_service";;
+	*)
+		echo "Don't know how to create a _service file for environment $opt_environment" >&2
+		exit 1
+	esac
 	: ;;
 workflow)
-	opt_outfile_format=".github/workflows/%OS-%IMAGE.yaml"
+	case $opt_environment in
+	standalone)
+		opt_outfile_format=".github/workflows/%OS-%IMAGE.yaml";;
+	*)
+		echo "Don't know how to create a workflow for environment $opt_environment" >&2
+		exit 1
+	esac
 	: ;;
 *)
 	echo "Don't know how to generate $opt_target" >&2
