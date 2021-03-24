@@ -1,4 +1,5 @@
 BASE_IMAGE([suse/sle15:15.2])
+define([_OS_SHORT_NAME],[SLE 15 SP2])
 
 define(_OBS_REGISTRY_HOST,[registry.suse.com])
 define(_OBS_REGISTRY_NAMESPACE,[suse/sles/15.2])

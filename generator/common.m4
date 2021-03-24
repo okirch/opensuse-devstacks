@@ -20,26 +20,29 @@ define([BUILD_INSTRUCTIONS], [
 ]) dnl
 define([_BUILD_INSTRUCTIONS],[# No build instructions defined for this base image.])
 
-define([__CHECK_COMPAT],[
- ifelse([$1],_BASE_OS_ID,[
- 	  define([_COMPAT_MATCH],$1)
-	],
- 	$#,1,[
-	end of list
-	],[
-	check shift($@)
-	__CHECK_COMPAT(shift($@))
-	])
+define([__CHECK_COMPAT],[dnl
+ ifelse([$1],__CHECK_OS_ID,
+ 	[define([_COMPAT_MATCH],$1)],
+ 	[$#],[1],[], dnl end of list
+	[__CHECK_COMPAT(shift($@))] dnl check shift($@)
+  )dnl
 ])
-__CHECK_COMPAT(_IMAGE_COMPAT)
+define([__CHECK_IMAGE_COMPATIBILITY],[dnl
+ define([__CHECK_OS_ID],$1)dnl
+ undefine([_COMPAT_MATCH])dnl
+ __CHECK_COMPAT(shift($@))dnl
+])
+define([_CHECK_IMAGE_COMPATIBILITY],[dnl
+__CHECK_IMAGE_COMPATIBILITY($1,_COMPAT_OS_LIST)dnl
+ifdef([_COMPAT_MATCH],_COMPAT_MATCH,[no match for $1])[]dnl
+])
 define([IMAGE_COMPATIBLE],[
  define([_COMPAT_OS_LIST],[$@])
  ifdef([_BASE_OS_ID],[
-   undef([_COMPAT_MATCH])
-   __CHECK_COMPAT($@)
+   __CHECK_IMAGE_COMPATIBILITY(_BASE_OS_ID, $@)
    ifdef([_COMPAT_MATCH],,
     [errprint(Error: Base OS _BASE_OS_ID not in list of compatible operating systems
-    )
+)
     m4exit(1)]
    )
  ])

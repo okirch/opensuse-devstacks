@@ -1,4 +1,5 @@
 BASE_IMAGE([opensuse/leap:15.2])
+define([_OS_SHORT_NAME],[Leap 15.2])
 dnl
 dnl The current namespace setup on registry.opensuse.org does not
 dnl distinguish between eg java-devel based on Tumbleweed vs a

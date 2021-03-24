@@ -60,7 +60,7 @@ function generate_one {
 
 	echo "Generating $outfile for $image on $os"
 
-	m4 -d -D_IMAGE_ID=$image -D_BASE_OS_ID=$os $m4_script >$outfile
+	m4 -D_IMAGE_ID=$image -D_BASE_OS_ID=$os $m4_script >$outfile
 }
 
 eval set -- $(getopt -n $PROGNAME -l base-os:,environment:,target:,output-dir:,output-file: -o "b:e:t:" -- "$@")
@@ -130,18 +130,40 @@ workflow)
 		exit 1
 	esac
 	: ;;
+table)
+	: ${opt_outfile:=table.html}
+	: ;;
 *)
 	echo "Don't know how to generate $opt_target" >&2
 	exit 1;;
 esac
 
 if [ $# -eq 0 ]; then
-	set $(ls images | sed 's:\.def$::')
+	set $(ls images | sed 's:\.def$::' | sort)
+fi
+
+if [ "$opt_target" = table ]; then
+	echo "Generating $opt_outfile"
+	os_list=$(ls generator | sed -e '/os-\(.*\)\.def/!d;s//\1/'|tr "\012" ","|sed 's:,$::')
+	(
+		echo
+		echo "<table>"
+		echo " <tr>"
+		echo "  <th></th>"
+		ls generator | sed -e '/os-\(.*\)\.def/!d;s//  <th>\1<\/th>/'
+		echo " </tr>"
+		for image_id; do
+			m4 -D_IMAGE_ID=$image_id -D_OS_LIST="$os_list" generator/table.m4
+		done
+		echo "</table>"
+		echo
+	) >$opt_outfile
+	exit 0
 fi
 
 for image_id; do
 	if [ $opt_base_os = all ]; then
-		for os in $(m4 -d -D_IMAGE_ID=$image_id generator/compatible.m4); do
+		for os in $(m4 -D_IMAGE_ID=$image_id generator/compatible.m4); do
 			generate_one $image_id $os $generator_file
 		done
 	else
