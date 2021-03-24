@@ -27,12 +27,8 @@ This is the table of images currently available:
   <th>sle-15.2</th>
   <th>tumbleweed</th>
  </tr>
-
-
-
 <tr>
  <td>go-1.15</td>
-
  <!-- leap-15.2 -->
     	     <td><a href="https://hub.docker.com/repository/docker/okir/leap-15.2-go-1.15">leap-15.2-go-1.15</a></td>
  <!-- sle-15.2 -->
@@ -40,12 +36,8 @@ This is the table of images currently available:
  <!-- tumbleweed -->
      <td><a href="https://hub.docker.com/repository/docker/okir/tumbleweed-go-1.15">tumbleweed-go-1.15</a></td>
 </tr>
-
-
-
 <tr>
  <td>go-1.16</td>
-
  <!-- leap-15.2 -->
     	     <td><a href="https://hub.docker.com/repository/docker/okir/leap-15.2-go-1.16">leap-15.2-go-1.16</a></td>
  <!-- sle-15.2 -->
@@ -53,12 +45,8 @@ This is the table of images currently available:
  <!-- tumbleweed -->
      <td><a href="https://hub.docker.com/repository/docker/okir/tumbleweed-go-1.16">tumbleweed-go-1.16</a></td>
 </tr>
-
-
-
 <tr>
  <td>java-11</td>
-
  <!-- leap-15.2 -->
      <td>n/a</td>
  <!-- sle-15.2 -->
@@ -66,12 +54,8 @@ This is the table of images currently available:
  <!-- tumbleweed -->
      <td>n/a</td>
 </tr>
-
-
-
 <tr>
  <td>java-14</td>
-
  <!-- leap-15.2 -->
      <td>n/a</td>
  <!-- sle-15.2 -->
@@ -79,12 +63,8 @@ This is the table of images currently available:
  <!-- tumbleweed -->
      <td><a href="https://hub.docker.com/repository/docker/okir/tumbleweed-java-14">tumbleweed-java-14</a></td>
 </tr>
-
-
-
 <tr>
  <td>java-15</td>
-
  <!-- leap-15.2 -->
      <td>n/a</td>
  <!-- sle-15.2 -->
@@ -92,12 +72,8 @@ This is the table of images currently available:
  <!-- tumbleweed -->
      <td><a href="https://hub.docker.com/repository/docker/okir/tumbleweed-java-15">tumbleweed-java-15</a></td>
 </tr>
-
-
-
 <tr>
  <td>java-16</td>
-
  <!-- leap-15.2 -->
      <td>n/a</td>
  <!-- sle-15.2 -->
@@ -105,12 +81,8 @@ This is the table of images currently available:
  <!-- tumbleweed -->
      <td><a href="https://hub.docker.com/repository/docker/okir/tumbleweed-java-16">tumbleweed-java-16</a></td>
 </tr>
-
-
-
 <tr>
  <td>python-3.6</td>
-
  <!-- leap-15.2 -->
     	     <td><a href="https://hub.docker.com/repository/docker/okir/leap-15.2-python-3.6">leap-15.2-python-3.6</a></td>
  <!-- sle-15.2 -->
@@ -118,12 +90,8 @@ This is the table of images currently available:
  <!-- tumbleweed -->
      <td><a href="https://hub.docker.com/repository/docker/okir/tumbleweed-python-3.6">tumbleweed-python-3.6</a></td>
 </tr>
-
-
-
 <tr>
  <td>python-3.8</td>
-
  <!-- leap-15.2 -->
      <td>n/a</td>
  <!-- sle-15.2 -->
@@ -131,12 +99,8 @@ This is the table of images currently available:
  <!-- tumbleweed -->
      <td><a href="https://hub.docker.com/repository/docker/okir/tumbleweed-python-3.8">tumbleweed-python-3.8</a></td>
 </tr>
-
-
-
 <tr>
  <td>rust</td>
-
  <!-- leap-15.2 -->
      <td>n/a</td>
  <!-- sle-15.2 -->
@@ -145,4 +109,3 @@ This is the table of images currently available:
      <td><a href="https://hub.docker.com/repository/docker/okir/tumbleweed-rust">tumbleweed-rust</a></td>
 </tr>
 </table>
-
