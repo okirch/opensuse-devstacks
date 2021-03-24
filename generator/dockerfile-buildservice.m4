@@ -8,7 +8,6 @@ dnl ############################################################
 dnl Using an unquoted # would prevent the expansion of _IMAGE_DEF_PATH
 [#] Dockerfile generated from _IMAGE_DEF_PATH
 #
-Tag is _IMAGE_TAG
 # Defines the tag for OBS and build script builds:
 _OBS_BUILD_TAGS
 
@@ -17,7 +16,7 @@ FROM _BASE_IMAGE
 ARG BUILDID=0
 
 ifdef([_IMAGE_TAG],dnl
-[#] labelprefix=com.suse._IMAGE_TAG
+[#] labelprefix=_OCI_NAMESPACE_PREFIX._IMAGE_TAG
 )dnl
 ifdef([_IMAGE_TITLE],dnl
 PREFIXEDLABEL org.opencontainers.image.title="_IMAGE_TITLE"
@@ -29,6 +28,8 @@ PREFIXEDLABEL org.opencontainers.image.created="%BUILDTIME%"
 PREFIXEDLABEL org.opencontainers.image.version="%%PKG_VERSION%%.%RELEASE%"
 PREFIXEDLABEL org.openbuildservice.disturl="%DISTURL%"
 ifdef([_IMAGE_TAG],dnl
+dnl should this always be org.opensuse.reference or should we use
+dnl _OCI_NAMESPACE_PREFIX.reference instead?
 PREFIXEDLABEL org.opensuse.reference="_OBS_REGISTRY_HOST/_OBS_REGISTRY_NAMESPACE/_IMAGE_TAG:%%PKG_VERSION%%.%RELEASE%"
 )dnl
 

@@ -1,12 +1,29 @@
+# Dockerfile generated from generator/../images/python-3.8.def
+#
+# Defines the tag for OBS and build script builds:
+#!BuildTag: opensuse/python-devel:3.8
+#!BuildTag: opensuse/python-devel:%%PKG_VERSION%%
+#!BuildTag: opensuse/python-devel:%%PKG_VERSION%%.%RELEASE%
+
+
 FROM opensuse/tumbleweed
 
-ARG PYTHON_VERSION
-ARG BUILDID
+ARG BUILDID=0
 
-LABEL org.opencontainers.image.title="Python $PYTHON_VERSION runtime container"
-LABEL org.opencontainers.image.description="Environment providing Python $PYTHON_VERSION runtime"
-LABEL org.opencontainers.image.version="$PYTHON_VERSION-$BUILDID"
+# labelprefix=org.opensuse.python-devel
+PREFIXEDLABEL org.opencontainers.image.title="Python 3.8 container"
+PREFIXEDLABEL org.opencontainers.image.description="Environment for Python 3.8"
+PREFIXEDLABEL org.opencontainers.image.created="%BUILDTIME%"
+PREFIXEDLABEL org.opencontainers.image.version="%%PKG_VERSION%%.%RELEASE%"
+PREFIXEDLABEL org.openbuildservice.disturl="%DISTURL%"
+PREFIXEDLABEL org.opensuse.reference="registry.opensuse.org/opensuse/python-devel:%%PKG_VERSION%%.%RELEASE%"
+
+
+# Work around https://github.com/openSUSE/obs-build/issues/487
+RUN zypper install -y openSUSE-release-appliance-docker
+
 
 RUN zypper in -y python38-base python38-pip python38-setuptools python38-wheel
 
-ENTRYPOINT [ "/bin/bash" ]
+
+# no cleanup required
