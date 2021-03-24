@@ -12,7 +12,7 @@ LABEL org.opencontainers.image.version="1.50-$BUILDID"
 RUN zypper install -y openSUSE-release-appliance-docker
 
 
-RUN zypper install -y --no-recommends rust cargo
+RUN zypper install -y --no-recommends rust cargo clippy rls rustfmt rust-gdb
 
 
 # no cleanup required

@@ -6,6 +6,6 @@ IMAGE_VERSION(1.50)
 IMAGE_MAIN_PACKAGE(rust)
 
 BUILD_INSTRUCTIONS([
-RUN zypper install -y --no-recommends rust cargo
+RUN zypper install -y --no-recommends rust cargo clippy rls rustfmt rust-gdb
 ])
 
