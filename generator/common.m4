@@ -53,6 +53,17 @@ ifdef([_IMAGE_ID],[
 ifdef([_BASE_OS_ID],[
  define([_OS_DEF_PATH],_GENERATOR_BASEDIR[/os-]_BASE_OS_ID[.def])
  include(_OS_DEF_PATH)
+
+ ifelse(substr(_BASE_OS_ID, 0, 3),[sle],[
+   define([_BASE_OS_SLE],[1])
+ ])
+ ifelse(substr(_BASE_OS_ID, 0, 4),[leap],[
+   define([_BASE_OS_LEAP],[1])
+ ])
+ dnl tumbleweed is not versioned
+ ifelse(_BASE_OS_ID,[tumbleweed],[
+   define([_BASE_OS_TUMBLEWEED],[1])
+ ])
 ])
 
 

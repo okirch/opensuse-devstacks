@@ -37,12 +37,14 @@ jobs:
     name: build-container
     runs-on: ubuntu-latest
     steps:
+ifdef(_BASE_OS_SLE,`dnl
       - name: Create credentials for SLE
         env:
           SCC_CREDS: ${{ secrets.SCC_CREDENTIALS }}
         run: echo "$SCC_CREDS" > SCCcredentials
       - id: verify
         run: ls -l SCCcredentials
+')dnl
       - uses: docker/setup-qemu-action@v1
       - id: buildx
         uses: docker/setup-buildx-action@v1
@@ -61,8 +63,10 @@ jobs:
         with:
           file: .genfiles/standalone/${{ github.workflow }}/Dockerfile
           push: true
+ifdef(_BASE_OS_SLE,`dnl
           secret-files: |
             "scc_credentials=./SCCcredentials"
+')dnl
           tags: |
             ghcr.io/${{ github.repository_owner }}/${{ github.workflow }}:latest
             ghcr.io/${{ github.repository_owner }}/${{ github.workflow }}:_IMAGE_VERSION-${{ github.run_number }}

@@ -34,12 +34,6 @@ jobs:
     name: build-container
     runs-on: ubuntu-latest
     steps:
-      - name: Create credentials for SLE
-        env:
-          SCC_CREDS: ${{ secrets.SCC_CREDENTIALS }}
-        run: echo "$SCC_CREDS" > SCCcredentials
-      - id: verify
-        run: ls -l SCCcredentials
       - uses: docker/setup-qemu-action@v1
       - id: buildx
         uses: docker/setup-buildx-action@v1
@@ -58,8 +52,6 @@ jobs:
         with:
           file: .genfiles/standalone/${{ github.workflow }}/Dockerfile
           push: true
-          secret-files: |
-            "scc_credentials=./SCCcredentials"
           tags: |
             ghcr.io/${{ github.repository_owner }}/${{ github.workflow }}:latest
             ghcr.io/${{ github.repository_owner }}/${{ github.workflow }}:14-${{ github.run_number }}
