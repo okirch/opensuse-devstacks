@@ -1,0 +1,11 @@
+IMAGE_COMPATIBLE(tumbleweed)
+IMAGE_TITLE([Rust development container])
+IMAGE_DESCRIPTION([Environment for Rust development])
+IMAGE_TAG(rust-devel)
+IMAGE_VERSION(1.50)
+IMAGE_MAIN_PACKAGE(rust)
+
+BUILD_INSTRUCTIONS([
+RUN zypper install -y --no-recommends rust cargo
+])
+
