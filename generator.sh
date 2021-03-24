@@ -154,7 +154,7 @@ if [ "$opt_target" = table ]; then
 		echo " </tr>"
 		for image_id; do
 			m4 -D_IMAGE_ID=$image_id -D_OS_LIST="$os_list" generator/table.m4
-		done
+		done | grep -v '^ *$'
 		echo "</table>"
 		echo
 	) >$opt_outfile
