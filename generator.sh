@@ -38,7 +38,7 @@ opt_target=dockerfile
 opt_outdir=output
 opt_outfile=
 opt_outfile_used=0
-opt_outfile_format=".genfiles/%ENVIRONMENT/%OS/%IMAGE/unknown"
+opt_outfile_format="%ENVIRONMENT/%OS/%IMAGE/unknown"
 
 function generate_one {
 
@@ -109,7 +109,7 @@ dockerfile)
 	buildservice)
 		opt_outfile_format="%ENVIRONMENT/%OS-%IMAGE/Dockerfile";;
 	*)
-		opt_outfile_format=".genfiles/%ENVIRONMENT/%OS-%IMAGE/Dockerfile";;
+		opt_outfile_format="%ENVIRONMENT/%OS-%IMAGE/Dockerfile";;
 	esac
 	: ;;
 _service)

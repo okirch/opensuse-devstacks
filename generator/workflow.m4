@@ -61,7 +61,7 @@ ifdef(`_BASE_OS_SLE',`dnl
           password: ${{ secrets.DOCKER_PAT }}
       - uses: docker/build-push-action@v2
         with:
-          file: .genfiles/standalone/${{ github.workflow }}/Dockerfile
+          file: standalone/${{ github.workflow }}/Dockerfile
           push: true
 ifdef(`_BASE_OS_SLE',`dnl
           secret-files: |
