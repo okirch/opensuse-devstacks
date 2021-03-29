@@ -1,6 +1,6 @@
 IMAGE_COMPATIBLE(sle-15.2)
 IMAGE_TITLE([Java 11 development container])
 IMAGE_DESCRIPTION([Environment for Java 11 development])
-IMAGE_TAG(java-devel)
+IMAGE_TAG(openjdk)
 IMAGE_VERSION(11)
 IMAGE_PACKAGES(java-11-openjdk-devel,osc,maven,git-core)
