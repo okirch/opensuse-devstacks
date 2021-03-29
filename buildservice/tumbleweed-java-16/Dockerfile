@@ -23,7 +23,7 @@ PREFIXEDLABEL org.opensuse.reference="registry.opensuse.org/opensuse/java-devel:
 RUN zypper install -y openSUSE-release-appliance-docker
 
 
-# Development packages
+# Install packages
 RUN zypper install -y --no-recommends java-16-openjdk-devel maven git-core
 
 

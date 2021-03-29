@@ -23,8 +23,8 @@ PREFIXEDLABEL org.opensuse.reference="registry.opensuse.org/opensuse/python-deve
 RUN zypper install -y openSUSE-release-appliance-docker
 
 
-RUN zypper in -y ruby-2.7 ruby2.7-rubygem-bundler ruby-devel
-RUN zypper in -y git-core patch make gcc
+# Install packages
+RUN zypper install -y --no-recommends ruby-2.7 ruby2.7-rubygem-bundler ruby-devel git-core patch make gcc
 
 
 # no cleanup required

@@ -11,14 +11,14 @@ LABEL org.opencontainers.image.version="11-$BUILDID"
 RUN mv /etc/zypp /etc/zypp.save
 ADD SCC/sles15-sp2.tar.gz /etc/zypp
 RUN --mount=type=secret,id=scc_credentials \
-  cp /run/secrets/scc_credentials /etc/zypp/credentials.d/SCCcredentials
+  ln -sf /run/secrets/scc_credentials /etc/zypp/credentials.d/SCCcredentials
 
 # Work around https://github.com/openSUSE/obs-build/issues/487
 RUN zypper install -y sles-release
 
 
-# Development packages
-RUN zypper install -y --no-recommends osc java-11-openjdk-devel maven git-core
+# Install packages
+RUN zypper install -y --no-recommends java-11-openjdk-devel osc maven git-core
 
 
 

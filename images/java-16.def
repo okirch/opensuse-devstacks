@@ -3,9 +3,4 @@ IMAGE_TITLE([Java 16 development container])
 IMAGE_DESCRIPTION([Environment for Java 16 development])
 IMAGE_TAG(java-devel)
 IMAGE_VERSION(16)
-IMAGE_MAIN_PACKAGE([java-16-openjdk-devel])
-
-BUILD_INSTRUCTIONS([
-# Development packages
-RUN zypper install -y --no-recommends java-16-openjdk-devel maven git-core
-])
+IMAGE_PACKAGES(java-16-openjdk-devel,maven,git-core)

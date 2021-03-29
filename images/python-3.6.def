@@ -3,6 +3,11 @@ IMAGE_TITLE([Python 3.6 container])
 IMAGE_DESCRIPTION([Environment for Python 3.6])
 IMAGE_TAG(python-devel)
 IMAGE_VERSION(3.6)
+ifdef([_BASE_OS_TUMBLEWEED],[
+ IMAGE_MAIN_PACKAGE(python36-base)
+],[
+ IMAGE_MAIN_PACKAGE(python3-base)
+])
 
 # Build instructions for leap 15.x and sles 15.x
 BUILD_INSTRUCTIONS([

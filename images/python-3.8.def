@@ -3,9 +3,4 @@ IMAGE_TITLE([Python 3.8 container])
 IMAGE_DESCRIPTION([Environment for Python 3.8])
 IMAGE_TAG(python-devel)
 IMAGE_VERSION(3.8)
-
-# Build instructions for tumbleweed, where package names are different
-BUILD_INSTRUCTIONS(tumbleweed,[
-RUN zypper in -y python38-base python38-pip python38-setuptools python38-wheel
-])
-
+IMAGE_PACKAGES(python38-base,python38-pip,python38-setuptools,python38-wheel)

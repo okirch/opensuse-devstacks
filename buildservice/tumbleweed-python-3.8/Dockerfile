@@ -23,7 +23,8 @@ PREFIXEDLABEL org.opensuse.reference="registry.opensuse.org/opensuse/python-deve
 RUN zypper install -y openSUSE-release-appliance-docker
 
 
-RUN zypper in -y python38-base python38-pip python38-setuptools python38-wheel
+# Install packages
+RUN zypper install -y --no-recommends python38-base python38-pip python38-setuptools python38-wheel
 
 
 # no cleanup required

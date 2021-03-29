@@ -5,7 +5,15 @@ define([IMAGE_TITLE], [define([_IMAGE_TITLE],$1)]) dnl
 define([IMAGE_DESCRIPTION], [define([_IMAGE_DESCRIPTION],$1)]) dnl
 define([IMAGE_VERSION], [define([_IMAGE_VERSION],$1)]) dnl
 define([IMAGE_TAG], [define([_IMAGE_TAG],$1)]) dnl
+define([IMAGE_PACKAGES], [
+	define([_IMAGE_PACKAGES],[$@])
+	ifdef([_IMAGE_MAIN_PACKAGE],,define([_IMAGE_MAIN_PACKAGE],$1))
+])
 define([IMAGE_MAIN_PACKAGE], [define([_IMAGE_MAIN_PACKAGE],$1)]) dnl
+define([_BUILD_INSTALL_PACKAGES],[dnl
+# Install packages
+RUN zypper install -y --no-recommends __PRINT_LIST($@)
+])
 dnl define([_IMAGE_MAIN_PACKAGE],[errprint([IMAGE_MAIN_PACKAGE] not set)])
 define([BUILD_INSTRUCTIONS], [
 	dnl This macro will accept one or two arguments
@@ -18,7 +26,7 @@ define([BUILD_INSTRUCTIONS], [
 	define([_BUILD_INSTRUCTIONS],$2)
 	])
 ]) dnl
-define([_BUILD_INSTRUCTIONS],[# No build instructions defined for this base image.])
+define([_BUILD_INSTRUCTIONS],[_BUILD_INSTALL_PACKAGES(_IMAGE_PACKAGES)])
 
 define([__CHECK_COMPAT],[dnl
  ifelse([$1],__CHECK_OS_ID,
@@ -48,11 +56,6 @@ define([IMAGE_COMPATIBLE],[
  ])
 ])
 
-ifdef([_IMAGE_ID],[
- define([_IMAGE_DEF_PATH],_GENERATOR_BASEDIR[/../images/]_IMAGE_ID[.def])
- include(_IMAGE_DEF_PATH)dnl
-])
-
 ifdef([_BASE_OS_ID],[
  define([_OS_DEF_PATH],_GENERATOR_BASEDIR[/os-]_BASE_OS_ID[.def])
  include(_OS_DEF_PATH)
@@ -69,6 +72,11 @@ ifdef([_BASE_OS_ID],[
  ])
 ])
 
+ifdef([_IMAGE_ID],[
+ define([_IMAGE_DEF_PATH],_GENERATOR_BASEDIR[/../images/]_IMAGE_ID[.def])
+ include(_IMAGE_DEF_PATH)dnl
+])
+
 
 define([_OBS_BUILD_TAGS],[dnl
 ifdef([_IMAGE_TAG],dnl
@@ -80,8 +88,8 @@ ifdef([_IMAGE_TAG],dnl
 define([__PRINT_LIST],[dnl
 ifelse(dnl
     [$#],0,[],
-    [$#],1,[$1 ],
-    [$1 __PRINT_LIST(shift($@))])dnl
+    [$#],1,[$1],
+    [$1 __PRINT_LIST(shift($@))])[]dnl
 ])
 
 divert(0)dnl

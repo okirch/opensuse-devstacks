@@ -23,6 +23,7 @@ PREFIXEDLABEL org.opensuse.reference="registry.opensuse.org/opensuse/rust-devel:
 RUN zypper install -y openSUSE-release-appliance-docker
 
 
+# Install packages
 RUN zypper install -y --no-recommends rust cargo clippy rls rustfmt rust-gdb
 
 

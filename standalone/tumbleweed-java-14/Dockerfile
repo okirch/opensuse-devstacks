@@ -12,7 +12,7 @@ LABEL org.opencontainers.image.version="14-$BUILDID"
 RUN zypper install -y openSUSE-release-appliance-docker
 
 
-# Development packages
+# Install packages
 RUN zypper install -y --no-recommends java-14-openjdk-devel maven git-core
 
 

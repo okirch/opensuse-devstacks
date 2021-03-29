@@ -3,10 +3,4 @@ IMAGE_TITLE([Java 15 development container])
 IMAGE_DESCRIPTION([Environment for Java 15 development])
 IMAGE_TAG(java-devel)
 IMAGE_VERSION(15)
-IMAGE_MAIN_PACKAGE([java-15-openjdk-devel])
-
-BUILD_INSTRUCTIONS([
-# Development packages
-RUN zypper install -y --no-recommends java-15-openjdk-devel maven git-core
-])
-
+IMAGE_PACKAGES(java-15-openjdk-devel,maven,git-core)

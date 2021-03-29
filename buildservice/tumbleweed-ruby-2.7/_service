@@ -4,7 +4,7 @@
         <param name="file">Dockerfile</param>
         <param name="regex">%%PKG_VERSION%%</param>
         <param name="parse-version">patch</param>
-        <param name="package">_IMAGE_MAIN_PACKAGE</param>
+        <param name="package">ruby-2.7</param>
     </service>
     <service mode="buildtime" name="docker_label_helper"/>
 </services>

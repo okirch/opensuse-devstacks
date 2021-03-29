@@ -12,7 +12,7 @@ LABEL org.opencontainers.image.version="1.15-$BUILDID"
 RUN zypper install -y openSUSE-release-appliance-docker
 
 
-# Development packages
+# Install packages
 RUN zypper install -y --no-recommends go1.15 git-core
 
 

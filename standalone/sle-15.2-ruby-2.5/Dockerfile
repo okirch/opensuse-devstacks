@@ -11,7 +11,7 @@ LABEL org.opencontainers.image.version="2.5-$BUILDID"
 RUN mv /etc/zypp /etc/zypp.save
 ADD SCC/sles15-sp2.tar.gz /etc/zypp
 RUN --mount=type=secret,id=scc_credentials \
-  cp /run/secrets/scc_credentials /etc/zypp/credentials.d/SCCcredentials
+  ln -sf /run/secrets/scc_credentials /etc/zypp/credentials.d/SCCcredentials
 
 # Work around https://github.com/openSUSE/obs-build/issues/487
 RUN zypper install -y sles-release

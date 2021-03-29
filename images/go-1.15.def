@@ -3,9 +3,4 @@ IMAGE_TITLE([GO 1.15 development container])
 IMAGE_DESCRIPTION([Environment for GO 1.15 development])
 IMAGE_TAG(go-devel)
 IMAGE_VERSION(1.15)
-IMAGE_MAIN_PACKAGE(go1.15)
-
-BUILD_INSTRUCTIONS([
-# Development packages
-RUN zypper install -y --no-recommends go1.15 git-core
-])
+IMAGE_PACKAGES(go1.15,git-core)
