@@ -5,14 +5,18 @@ define(_OBS_REGISTRY_HOST,[registry.suse.com])
 define(_OBS_REGISTRY_NAMESPACE,[suse/sles/15.2])
 define(_OCI_NAMESPACE_PREFIX,[com.suse]) _OS_BASE_IS
 
+define([_BUILD_INSTALL_PACKAGES],[dnl
+RUN --mount=type=secret,id=scc_credentials \
+  zypper install -y --no-recommends __PRINT_LIST($@)
+])
+
 define([_BUILD_SETUP],[
 RUN mv /etc/zypp /etc/zypp.save
 ADD SCC/sles15-sp2.tar.gz /etc/zypp
-RUN --mount=type=secret,id=scc_credentials \
-  ln -sf /run/secrets/scc_credentials /etc/zypp/credentials.d/SCCcredentials
+RUN ln -sf /run/secrets/scc_credentials /etc/zypp/credentials.d/SCCcredentials
 
 # Work around https://github.com/openSUSE/obs-build/issues/487
-RUN zypper install -y sles-release
+_BUILD_INSTALL_PACKAGES(sles-release)
 ])
 define(_BUILD_CLEANUP,[
 RUN rm -rf /etc/zypp

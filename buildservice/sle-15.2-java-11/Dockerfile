@@ -21,15 +21,17 @@ PREFIXEDLABEL org.opensuse.reference="registry.suse.com/suse/sles/15.2/java-deve
 
 RUN mv /etc/zypp /etc/zypp.save
 ADD SCC/sles15-sp2.tar.gz /etc/zypp
-RUN --mount=type=secret,id=scc_credentials \
-  ln -sf /run/secrets/scc_credentials /etc/zypp/credentials.d/SCCcredentials
+RUN ln -sf /run/secrets/scc_credentials /etc/zypp/credentials.d/SCCcredentials
 
 # Work around https://github.com/openSUSE/obs-build/issues/487
-RUN zypper install -y sles-release
+RUN --mount=type=secret,id=scc_credentials \
+  zypper install -y --no-recommends sles-release
+
 
 
 # Install packages
-RUN zypper install -y --no-recommends java-11-openjdk-devel osc maven git-core
+RUN --mount=type=secret,id=scc_credentials \
+  zypper install -y --no-recommends java-11-openjdk-devel osc maven git-core
 
 
 

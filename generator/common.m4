@@ -10,10 +10,6 @@ define([IMAGE_PACKAGES], [
 	ifdef([_IMAGE_MAIN_PACKAGE],,define([_IMAGE_MAIN_PACKAGE],$1))
 ])
 define([IMAGE_MAIN_PACKAGE], [define([_IMAGE_MAIN_PACKAGE],$1)]) dnl
-define([_BUILD_INSTALL_PACKAGES],[dnl
-# Install packages
-RUN zypper install -y --no-recommends __PRINT_LIST($@)
-])
 dnl define([_IMAGE_MAIN_PACKAGE],[errprint([IMAGE_MAIN_PACKAGE] not set)])
 define([BUILD_INSTRUCTIONS], [
 	dnl This macro will accept one or two arguments
@@ -26,7 +22,9 @@ define([BUILD_INSTRUCTIONS], [
 	define([_BUILD_INSTRUCTIONS],$2)
 	])
 ]) dnl
-define([_BUILD_INSTRUCTIONS],[_BUILD_INSTALL_PACKAGES(_IMAGE_PACKAGES)])
+define([_BUILD_INSTRUCTIONS],[dnl
+# Install packages
+_BUILD_INSTALL_PACKAGES(_IMAGE_PACKAGES)])
 
 define([__CHECK_COMPAT],[dnl
  ifelse([$1],__CHECK_OS_ID,
