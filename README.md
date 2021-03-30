@@ -93,9 +93,9 @@ This is the table of images currently available:
 <tr>
  <td>python-3.8</td>
  <!-- leap-15.2 -->
-     <td>n/a</td>
+    	     <td><a href="https://hub.docker.com/repository/docker/okir/leap-15.2-python-3.8">leap-15.2-python-3.8</a></td>
  <!-- sle-15.2 -->
-     <td>n/a</td>
+    	 	        <td><a href="https://hub.docker.com/repository/docker/okir/sle-15.2-python-3.8">sle-15.2-python-3.8</a></td>
  <!-- tumbleweed -->
      <td><a href="https://hub.docker.com/repository/docker/okir/tumbleweed-python-3.8">tumbleweed-python-3.8</a></td>
 </tr>
