@@ -21,8 +21,7 @@ ifdef([_IMAGE_VERSION],dnl
 LABEL org.opencontainers.image.version="_IMAGE_VERSION-$BUILDID"
 )dnl
 
+_ADD_EXTRA_REPOS
 _BUILD_SETUP
-
 _BUILD_INSTRUCTIONS
-
 _BUILD_CLEANUP

@@ -7,7 +7,9 @@ dnl java-devel image based on Leap
 dnl 
 define(_OBS_REGISTRY_HOST,[registry.opensuse.org])
 dnl define(_OBS_REGISTRY_NAMESPACE,[opensuse])
+define([_OBS_DISTRO_ID],[openSUSE_Leap_15.2])
 define(_OCI_NAMESPACE_PREFIX,[org.opensuse])
+
 define(_BUILD_SETUP,[# no setup required])
 define(_BUILD_CLEANUP,[# no cleanup required])
 define([_BUILD_INSTALL_PACKAGES],[dnl

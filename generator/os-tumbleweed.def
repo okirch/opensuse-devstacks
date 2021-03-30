@@ -2,6 +2,7 @@ BASE_IMAGE([opensuse/tumbleweed])
 define([_OS_SHORT_NAME],[Tumbleweed])
 define(_OBS_REGISTRY_HOST,[registry.opensuse.org])
 define(_OBS_REGISTRY_NAMESPACE,[opensuse])
+define([_OBS_DISTRO_ID],[Factory])
 define(_OCI_NAMESPACE_PREFIX,[org.opensuse])
 define(_BUILD_CLEANUP,[# no cleanup required])
 define([_BUILD_INSTALL_PACKAGES],[dnl

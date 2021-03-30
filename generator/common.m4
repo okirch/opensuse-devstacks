@@ -70,6 +70,32 @@ ifdef([_BASE_OS_ID],[
  ])
 ])
 
+define([EXTRA_REPO],[
+ ifdef([_EXTRA_REPO_LIST],
+  [define([_EXTRA_REPO_LIST],_EXTRA_REPO_LIST,$1)],
+  [define([_EXTRA_REPO_LIST],$1)]
+  )
+])
+
+define([__ADD_ONE_REPO],[RUN zypper ar $1])
+define([__ADD_REPOS],[dnl
+# Add extra repositories
+ifelse(
+    [$#],0,[],
+    [$#],1,[__ADD_ONE_REPO($1)],
+    [__ADD_ONE_REPO($1)
+__ADD_REPOS(shift($@))])[]dnl
+])
+
+define([_ADD_EXTRA_REPOS],[ifdef([_EXTRA_REPO_LIST],[__ADD_REPOS(_EXTRA_REPO_LIST)])])
+
+define([EXTRA_OPENSUSE_REPO],[
+ EXTRA_REPO(format([https://download.opensuse.org/repositories/%s/%s/%s.repo],
+	patsubst($1,[:],[:/]),
+	_OBS_DISTRO_ID,
+	$1))
+])
+
 ifdef([_IMAGE_ID],[
  define([_IMAGE_DEF_PATH],_GENERATOR_BASEDIR[/../images/]_IMAGE_ID[.def])
  include(_IMAGE_DEF_PATH)dnl

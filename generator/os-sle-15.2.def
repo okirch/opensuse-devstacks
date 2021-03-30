@@ -3,6 +3,8 @@ define([_OS_SHORT_NAME],[SLE 15 SP2])
 
 define(_OBS_REGISTRY_HOST,[registry.suse.com])
 define(_OBS_REGISTRY_NAMESPACE,[suse/sles/15.2])
+define(_OBS_DISTRO_ID,[SLE_15_SP2])
+
 define(_OCI_NAMESPACE_PREFIX,[com.suse]) _OS_BASE_IS
 
 define([_BUILD_INSTALL_PACKAGES],[dnl
