@@ -7,8 +7,6 @@ LABEL org.opencontainers.image.title="Python 3.8 container"
 LABEL org.opencontainers.image.description="Environment for Python 3.8"
 LABEL org.opencontainers.image.version="3.8-$BUILDID"
 
-# Add extra repositories
-RUN zypper ar --refresh https://download.opensuse.org/repositories/home:/okir:/devstacks/SLE_15_SP2/home:okir:devstacks.repo
 
 RUN mv /etc/zypp /etc/zypp.save
 ADD SCC/sles15-sp2.tar.gz /etc/zypp
@@ -19,8 +17,15 @@ RUN --mount=type=secret,id=scc_credentials \
   zypper install -y --no-recommends sles-release
 
 
-RUN zypper lr
+# Add extra repositories
+RUN zypper ar --refresh https://download.opensuse.org/repositories/home:/okir:/devstacks/SLE_15_SP2/home:okir:devstacks.repo
 
+RUN --mount=type=secret,id=scc_credentials \
+RUN zypper lr
+RUN --mount=type=secret,id=scc_credentials \
+RUN zypper refresh
+RUN --mount=type=secret,id=scc_credentials \
+RUN zypper lr
 # Install packages
 RUN --mount=type=secret,id=scc_credentials \
   zypper install -y --no-recommends python38-base python38-pip python38-setuptools python38-wheel
