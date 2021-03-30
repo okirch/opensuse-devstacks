@@ -18,7 +18,7 @@ RUN --mount=type=secret,id=scc_credentials \
 
 
 # Add extra repositories
-RUN zypper ar --refresh https://download.opensuse.org/repositories/home:/okir:/devstacks/SLE_15_SP2/home:okir:devstacks.repo
+RUN zypper ar --refresh --no-gpgcheck https://download.opensuse.org/repositories/home:/okir:/devstacks/SLE_15_SP2/home:okir:devstacks.repo
 
 RUN --mount=type=secret,id=scc_credentials zypper lr
 RUN --mount=type=secret,id=scc_credentials zypper refresh
