@@ -1,22 +1,22 @@
 # Dockerfile generated from generator/../images/go-1.15.def
 #
 # Defines the tag for OBS and build script builds:
-#!BuildTag: suse/sles/15.2/go-devel:1.15
-#!BuildTag: suse/sles/15.2/go-devel:%%PKG_VERSION%%
-#!BuildTag: suse/sles/15.2/go-devel:%%PKG_VERSION%%.%RELEASE%
+#!BuildTag: suse/sles/15.2/golang:1.15
+#!BuildTag: suse/sles/15.2/golang:%%PKG_VERSION%%
+#!BuildTag: suse/sles/15.2/golang:%%PKG_VERSION%%.%RELEASE%
 
 
 FROM suse/sle15:15.2
 
 ARG BUILDID=0
 
-# labelprefix=com.suse.go-devel
+# labelprefix=com.suse.golang
 PREFIXEDLABEL org.opencontainers.image.title="GO 1.15 development container"
 PREFIXEDLABEL org.opencontainers.image.description="Environment for GO 1.15 development"
 PREFIXEDLABEL org.opencontainers.image.created="%BUILDTIME%"
 PREFIXEDLABEL org.opencontainers.image.version="%%PKG_VERSION%%.%RELEASE%"
 PREFIXEDLABEL org.openbuildservice.disturl="%DISTURL%"
-PREFIXEDLABEL org.opensuse.reference="registry.suse.com/suse/sles/15.2/go-devel:%%PKG_VERSION%%.%RELEASE%"
+PREFIXEDLABEL org.opensuse.reference="registry.suse.com/suse/sles/15.2/golang:%%PKG_VERSION%%.%RELEASE%"
 
 
 

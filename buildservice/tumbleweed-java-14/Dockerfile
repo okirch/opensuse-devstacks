@@ -1,22 +1,22 @@
 # Dockerfile generated from generator/../images/java-14.def
 #
 # Defines the tag for OBS and build script builds:
-#!BuildTag: opensuse/java-devel:14
-#!BuildTag: opensuse/java-devel:%%PKG_VERSION%%
-#!BuildTag: opensuse/java-devel:%%PKG_VERSION%%.%RELEASE%
+#!BuildTag: opensuse/openjdk:14
+#!BuildTag: opensuse/openjdk:%%PKG_VERSION%%
+#!BuildTag: opensuse/openjdk:%%PKG_VERSION%%.%RELEASE%
 
 
 FROM opensuse/tumbleweed
 
 ARG BUILDID=0
 
-# labelprefix=org.opensuse.java-devel
+# labelprefix=org.opensuse.openjdk
 PREFIXEDLABEL org.opencontainers.image.title="Java 14 development container"
 PREFIXEDLABEL org.opencontainers.image.description="Environment for Java 14 development"
 PREFIXEDLABEL org.opencontainers.image.created="%BUILDTIME%"
 PREFIXEDLABEL org.opencontainers.image.version="%%PKG_VERSION%%.%RELEASE%"
 PREFIXEDLABEL org.openbuildservice.disturl="%DISTURL%"
-PREFIXEDLABEL org.opensuse.reference="registry.opensuse.org/opensuse/java-devel:%%PKG_VERSION%%.%RELEASE%"
+PREFIXEDLABEL org.opensuse.reference="registry.opensuse.org/opensuse/openjdk:%%PKG_VERSION%%.%RELEASE%"
 
 
 
