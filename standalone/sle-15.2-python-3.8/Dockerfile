@@ -20,12 +20,10 @@ RUN --mount=type=secret,id=scc_credentials \
 # Add extra repositories
 RUN zypper ar --refresh https://download.opensuse.org/repositories/home:/okir:/devstacks/SLE_15_SP2/home:okir:devstacks.repo
 
-RUN --mount=type=secret,id=scc_credentials \
-RUN zypper lr
-RUN --mount=type=secret,id=scc_credentials \
-RUN zypper refresh
-RUN --mount=type=secret,id=scc_credentials \
-RUN zypper lr
+RUN --mount=type=secret,id=scc_credentials zypper lr
+RUN --mount=type=secret,id=scc_credentials zypper refresh
+RUN --mount=type=secret,id=scc_credentials zypper lr
+
 # Install packages
 RUN --mount=type=secret,id=scc_credentials \
   zypper install -y --no-recommends python38-base python38-pip python38-setuptools python38-wheel
