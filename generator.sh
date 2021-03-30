@@ -39,6 +39,14 @@ opt_outdir=output
 opt_outfile=
 opt_outfile_used=0
 opt_outfile_format="%ENVIRONMENT/%OS/%IMAGE/unknown"
+opt_verbose=false
+
+function run_command {
+	if $opt_verbose; then
+		echo "$@" >&2
+	fi
+	"$@"
+}
 
 function generate_one {
 
@@ -60,10 +68,10 @@ function generate_one {
 
 	echo "Generating $outfile for $image on $os"
 
-	m4 -D_IMAGE_ID=$image -D_BASE_OS_ID=$os $m4_script >$outfile
+	run_command m4 -D_IMAGE_ID=$image -D_BASE_OS_ID=$os $m4_script >$outfile
 }
 
-eval set -- $(getopt -n $PROGNAME -l base-os:,environment:,target:,output-dir:,output-file: -o "b:e:t:" -- "$@")
+eval set -- $(getopt -n $PROGNAME -l base-os:,environment:,target:,output-dir:,output-file:,verbose -o "b:e:t:v" -- "$@")
 while [ $# -gt 0 ]; do
 	arg=$1; shift
 	if [ "$arg" = "--" ]; then
@@ -86,6 +94,8 @@ while [ $# -gt 0 ]; do
 	--output-file)
 		opt_outfile=$1
 		shift;;
+	--verbose|-v)
+		opt_verbose=true;;
 	*)
 		echo "Unknown option $arg" >&2
 		exit 1;;
