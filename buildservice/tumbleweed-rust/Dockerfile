@@ -19,12 +19,11 @@ PREFIXEDLABEL org.openbuildservice.disturl="%DISTURL%"
 PREFIXEDLABEL org.opensuse.reference="registry.opensuse.org/opensuse/rust-devel:%%PKG_VERSION%%.%RELEASE%"
 
 
+
 # Work around https://github.com/openSUSE/obs-build/issues/487
 RUN zypper install -y openSUSE-release-appliance-docker
 
-
 # Install packages
 RUN zypper install -y --no-recommends rust cargo clippy rls rustfmt rust-gdb
-
 
 # no cleanup required

@@ -19,6 +19,7 @@ PREFIXEDLABEL org.openbuildservice.disturl="%DISTURL%"
 PREFIXEDLABEL org.opensuse.reference="registry.suse.com/suse/sles/15.2/java-devel:%%PKG_VERSION%%.%RELEASE%"
 
 
+
 RUN mv /etc/zypp /etc/zypp.save
 ADD SCC/sles15-sp2.tar.gz /etc/zypp
 RUN ln -sf /run/secrets/scc_credentials /etc/zypp/credentials.d/SCCcredentials
@@ -28,11 +29,9 @@ RUN --mount=type=secret,id=scc_credentials \
   zypper install -y --no-recommends sles-release
 
 
-
 # Install packages
 RUN --mount=type=secret,id=scc_credentials \
   zypper install -y --no-recommends java-11-openjdk-devel osc maven git-core
-
 
 
 RUN rm -rf /etc/zypp

@@ -8,6 +8,7 @@ LABEL org.opencontainers.image.description="Environment for Java 11 development"
 LABEL org.opencontainers.image.version="11-$BUILDID"
 
 
+
 RUN mv /etc/zypp /etc/zypp.save
 ADD SCC/sles15-sp2.tar.gz /etc/zypp
 RUN ln -sf /run/secrets/scc_credentials /etc/zypp/credentials.d/SCCcredentials
@@ -17,11 +18,9 @@ RUN --mount=type=secret,id=scc_credentials \
   zypper install -y --no-recommends sles-release
 
 
-
 # Install packages
 RUN --mount=type=secret,id=scc_credentials \
   zypper install -y --no-recommends java-11-openjdk-devel osc maven git-core
-
 
 
 RUN rm -rf /etc/zypp

@@ -19,12 +19,11 @@ PREFIXEDLABEL org.openbuildservice.disturl="%DISTURL%"
 PREFIXEDLABEL org.opensuse.reference="registry.opensuse.org/opensuse/python-devel:%%PKG_VERSION%%.%RELEASE%"
 
 
+
 # Work around https://github.com/openSUSE/obs-build/issues/487
 RUN zypper install -y openSUSE-release-appliance-docker
 
-
 # Install packages
 RUN zypper install -y --no-recommends python38-base python38-pip python38-setuptools python38-wheel
-
 
 # no cleanup required

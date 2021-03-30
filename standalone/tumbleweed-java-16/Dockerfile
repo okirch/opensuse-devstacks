@@ -8,12 +8,11 @@ LABEL org.opencontainers.image.description="Environment for Java 16 development"
 LABEL org.opencontainers.image.version="16-$BUILDID"
 
 
+
 # Work around https://github.com/openSUSE/obs-build/issues/487
 RUN zypper install -y openSUSE-release-appliance-docker
 
-
 # Install packages
 RUN zypper install -y --no-recommends java-16-openjdk-devel maven git-core
-
 
 # no cleanup required

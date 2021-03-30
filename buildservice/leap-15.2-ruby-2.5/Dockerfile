@@ -19,9 +19,9 @@ PREFIXEDLABEL org.openbuildservice.disturl="%DISTURL%"
 PREFIXEDLABEL org.opensuse.reference="registry.opensuse.org/_OBS_REGISTRY_NAMESPACE/python-devel:%%PKG_VERSION%%.%RELEASE%"
 
 
+
 # Work around https://github.com/openSUSE/obs-build/issues/487
 RUN zypper install -y openSUSE-release-appliance-docker
-
 
 RUN zypper in -y ruby-2.5 ruby2.5-rubygem-bundler ruby-devel
 RUN zypper in -y git-core patch make gcc
@@ -29,6 +29,5 @@ RUN zypper in -y git-core patch make gcc
 #    ruby2.5-make-gem-build-reproducible.patch
 # because that breaks hoe. But reverting patches during container build
 # is probably not a very nice thing to do.
-
 
 # no cleanup required

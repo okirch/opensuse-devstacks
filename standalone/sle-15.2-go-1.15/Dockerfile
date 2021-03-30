@@ -8,6 +8,7 @@ LABEL org.opencontainers.image.description="Environment for GO 1.15 development"
 LABEL org.opencontainers.image.version="1.15-$BUILDID"
 
 
+
 RUN mv /etc/zypp /etc/zypp.save
 ADD SCC/sles15-sp2.tar.gz /etc/zypp
 RUN ln -sf /run/secrets/scc_credentials /etc/zypp/credentials.d/SCCcredentials
@@ -17,11 +18,9 @@ RUN --mount=type=secret,id=scc_credentials \
   zypper install -y --no-recommends sles-release
 
 
-
 # Install packages
 RUN --mount=type=secret,id=scc_credentials \
   zypper install -y --no-recommends go1.15 git-core
-
 
 
 RUN rm -rf /etc/zypp
