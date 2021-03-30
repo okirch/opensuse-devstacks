@@ -77,7 +77,7 @@ define([EXTRA_REPO],[
   )
 ])
 
-define([__ADD_ONE_REPO],[RUN zypper ar $1])
+define([__ADD_ONE_REPO],[RUN zypper ar --refresh $1])
 define([__ADD_REPOS],[dnl
 # Add extra repositories
 ifelse(

@@ -8,7 +8,7 @@ LABEL org.opencontainers.image.description="Environment for Python 3.8"
 LABEL org.opencontainers.image.version="3.8-$BUILDID"
 
 # Add extra repositories
-RUN zypper ar https://download.opensuse.org/repositories/home:/okir:/devstacks/openSUSE_Leap_15.2/home:okir:devstacks.repo
+RUN zypper ar --refresh https://download.opensuse.org/repositories/home:/okir:/devstacks/openSUSE_Leap_15.2/home:okir:devstacks.repo
 
 # Work around https://github.com/openSUSE/obs-build/issues/487
 RUN zypper install -y openSUSE-release-appliance-docker

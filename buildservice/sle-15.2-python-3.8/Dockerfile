@@ -19,7 +19,7 @@ PREFIXEDLABEL org.openbuildservice.disturl="%DISTURL%"
 PREFIXEDLABEL org.opensuse.reference="registry.suse.com/suse/sles/15.2/python-devel:%%PKG_VERSION%%.%RELEASE%"
 
 # Add extra repositories
-RUN zypper ar https://download.opensuse.org/repositories/home:/okir:/devstacks/SLE_15_SP2/home:okir:devstacks.repo
+RUN zypper ar --refresh https://download.opensuse.org/repositories/home:/okir:/devstacks/SLE_15_SP2/home:okir:devstacks.repo
 
 RUN mv /etc/zypp /etc/zypp.save
 ADD SCC/sles15-sp2.tar.gz /etc/zypp
