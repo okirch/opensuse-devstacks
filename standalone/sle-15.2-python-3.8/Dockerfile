@@ -19,6 +19,8 @@ RUN --mount=type=secret,id=scc_credentials \
   zypper install -y --no-recommends sles-release
 
 
+RUN zypper lr
+
 # Install packages
 RUN --mount=type=secret,id=scc_credentials \
   zypper install -y --no-recommends python38-base python38-pip python38-setuptools python38-wheel
