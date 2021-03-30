@@ -1,6 +1,6 @@
 IMAGE_COMPATIBLE(tumbleweed)
 IMAGE_TITLE([Java 14 development container])
 IMAGE_DESCRIPTION([Environment for Java 14 development])
-IMAGE_TAG(java-devel)
+IMAGE_TAG(openjdk)
 IMAGE_VERSION(14)
 IMAGE_PACKAGES(java-14-openjdk-devel,maven,git-core)
