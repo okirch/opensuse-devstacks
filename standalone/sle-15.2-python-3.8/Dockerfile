@@ -11,6 +11,7 @@ LABEL org.opencontainers.image.version="3.8-$BUILDID"
 RUN mv /etc/zypp /etc/zypp.save
 ADD SCC/sles15-sp2.tar.gz /etc/zypp
 RUN ln -sf /run/secrets/scc_credentials /etc/zypp/credentials.d/SCCcredentials
+RUN --mount=type=secret,id=scc_credentials zypper refresh
 
 # Work around https://github.com/openSUSE/obs-build/issues/487
 RUN --mount=type=secret,id=scc_credentials \
@@ -18,11 +19,8 @@ RUN --mount=type=secret,id=scc_credentials \
 
 
 # Add extra repositories
-RUN zypper ar --refresh --no-gpgcheck https://download.opensuse.org/repositories/home:/okir:/devstacks/SLE_15_SP2/home:okir:devstacks.repo
-
-RUN --mount=type=secret,id=scc_credentials zypper lr
+RUN --mount=type=secret,id=scc_credentials zypper addrepo --refresh --no-gpgcheck https://download.opensuse.org/repositories/home:/okir:/devstacks/SLE_15_SP2/home:okir:devstacks.repo
 RUN --mount=type=secret,id=scc_credentials zypper refresh
-RUN --mount=type=secret,id=scc_credentials zypper lr
 
 # Install packages
 RUN --mount=type=secret,id=scc_credentials \

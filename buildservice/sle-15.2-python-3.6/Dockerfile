@@ -23,6 +23,7 @@ PREFIXEDLABEL org.opensuse.reference="registry.suse.com/suse/sles/15.2/python-de
 RUN mv /etc/zypp /etc/zypp.save
 ADD SCC/sles15-sp2.tar.gz /etc/zypp
 RUN ln -sf /run/secrets/scc_credentials /etc/zypp/credentials.d/SCCcredentials
+RUN --mount=type=secret,id=scc_credentials zypper refresh
 
 # Work around https://github.com/openSUSE/obs-build/issues/487
 RUN --mount=type=secret,id=scc_credentials \

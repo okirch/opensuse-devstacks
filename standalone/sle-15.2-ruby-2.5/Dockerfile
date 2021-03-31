@@ -8,14 +8,15 @@ LABEL org.opencontainers.image.description="Environment for Ruby 2.5"
 LABEL org.opencontainers.image.version="2.5-$BUILDID"
 
 
-
 RUN mv /etc/zypp /etc/zypp.save
 ADD SCC/sles15-sp2.tar.gz /etc/zypp
 RUN ln -sf /run/secrets/scc_credentials /etc/zypp/credentials.d/SCCcredentials
+RUN --mount=type=secret,id=scc_credentials zypper refresh
 
 # Work around https://github.com/openSUSE/obs-build/issues/487
 RUN --mount=type=secret,id=scc_credentials \
   zypper install -y --no-recommends sles-release
+
 
 
 RUN zypper in -y ruby-2.5 ruby2.5-rubygem-bundler ruby-devel
