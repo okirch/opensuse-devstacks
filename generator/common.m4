@@ -26,6 +26,23 @@ define([_BUILD_INSTRUCTIONS],[dnl
 # Install packages
 _BUILD_INSTALL_PACKAGES(_IMAGE_PACKAGES)])
 
+dnl
+dnl Generic list iteration macro
+dnl
+dnl Assume you have a comma separated list named __THE_LIST__ which you
+dnl want to process. For processing, you have defined a macro that handles
+dnl a single list item:
+dnl  define([MY_ITEM_HANDLER],[... whatever you like $1 ...])
+dnl
+dnl In order to process a list, do this:
+dnl  define([___LIST_ITEM_APPLY],[MY_ITEM_HANDLER])__LIST_ITERATE(__THE_LIST__)
+dnl
+define([__LIST_ITERATE],[dnl
+ifelse(
+    [$#],0,[],
+    [$#],1,[___LIST_ITEM_APPLY()($1)],
+    [___LIST_ITEM_APPLY()($1)__LIST_ITERATE(shift($@))])])
+
 define([__CHECK_COMPAT],[dnl
  ifelse([$1],__CHECK_OS_ID,
  	[define([_COMPAT_MATCH],$1)],
@@ -79,7 +96,6 @@ define([EXTRA_REPO],[
 
 define([__ADD_ONE_REPO],[_BUILD_ENABLE_REPO($1)])
 define([__ADD_REPOS],[dnl
-# Add extra repositories
 ifelse(
     [$#],0,[],
     [$#],1,[__ADD_ONE_REPO($1)],
@@ -88,8 +104,23 @@ __ADD_REPOS(shift($@))])[]dnl
 ])
 
 define([_ADD_EXTRA_REPOS],[ifdef([_EXTRA_REPO_LIST],[dnl
+# Add extra repositories
 __ADD_REPOS(_EXTRA_REPO_LIST)
 _BUILD_REFRESH_REPOS
+])])
+
+define([EXTRA_GPGKEY],[
+ ifdef([_EXTRA_GPGKEY_LIST],
+  [define([_EXTRA_GPGKEY_LIST],_EXTRA_GPGKEY_LIST,$1)],
+  [define([_EXTRA_GPGKEY_LIST],$1)]
+  )
+])
+
+define([__ADD_ONE_GPGKEY],[RUN --mount=type=secret,id=key_$1 rpm --import /run/secrets/key_$1
+])
+define([_ADD_EXTRA_GPGKEYS],[ifdef([_EXTRA_GPGKEY_LIST],[dnl
+# Add extra gpg keys
+define([___LIST_ITEM_APPLY],[__ADD_ONE_GPGKEY])__LIST_ITERATE(_EXTRA_GPGKEY_LIST)
 ])])
 
 define([EXTRA_OPENSUSE_REPO],[
@@ -97,6 +128,7 @@ define([EXTRA_OPENSUSE_REPO],[
 	patsubst($1,[:],[:/]),
 	_OBS_DISTRO_ID,
 	$1))
+ EXTRA_GPGKEY(patsubst($1,[:],[_]))
 ])
 
 ifdef([_IMAGE_ID],[

@@ -2,6 +2,34 @@ define(`_GENERATOR_BASEDIR',regexp(__file__,`\(.*\)/[^/]*$',`\1'))dnl
 dnl common.m4 redefines the quote characters to [ ]
 include(_GENERATOR_BASEDIR`/common.m4')dnl
 
+divert(-1)
+dnl ######################################
+dnl workflow specific macros
+dnl ######################################
+define([__ADD_ONE_GPGKEY],[dnl
+      - name: Add gpg key $1
+        env:
+          KEY: ${{ secrets.KEY_[]translit($1,a-z,A-Z) }}
+        run: echo "$KEY" > $1.key
+_ADD_SECRET(key_$1, $1.key)dnl
+])
+define([__ADD_GPGKEYS],[dnl
+define([___LIST_ITEM_APPLY],[__ADD_ONE_GPGKEY])__LIST_ITERATE($@)])
+
+define([_ADD_EXTRA_GPGKEYS],[ifdef([_EXTRA_GPGKEY_LIST],[dnl
+__ADD_GPGKEYS(_EXTRA_GPGKEY_LIST)])])
+
+define([_ADD_SECRET],[dnl
+ifdef([_SECRETS_LIST],
+  [define([_SECRETS_LIST],_SECRETS_LIST[,$1=./$2])],
+  [define([_SECRETS_LIST],[$1=./$2])])])
+
+define([__FORMAT_EXPORT_SECRET],[__LIST_INDENT"$1"])
+define([_FORMAT_SECRET_FILES],[dnl
+define([__LIST_INDENT],$1)dnl
+define([___LIST_ITEM_APPLY],[__FORMAT_EXPORT_SECRET])__LIST_ITERATE(shift($@))])
+
+divert(0)dnl
 # vim: set expandtab:
 
 #
@@ -44,7 +72,9 @@ ifdef([_BASE_OS_SLE],[dnl
         run: echo "$SCC_CREDS" > SCCcredentials
       - id: verify
         run: ls -l SCCcredentials
+_ADD_SECRET(scc_credentials, SCCcredentials)dnl
 ])dnl
+_ADD_EXTRA_GPGKEYS[]dnl
       - uses: docker/setup-qemu-action@v1
       - id: buildx
         uses: docker/setup-buildx-action@v1
@@ -63,9 +93,11 @@ ifdef([_BASE_OS_SLE],[dnl
         with:
           file: standalone/${{ github.workflow }}/Dockerfile
           push: true
-ifdef([_BASE_OS_SLE],[dnl
-          secret-files: |
-            "scc_credentials=./SCCcredentials"
+ifdef([_SECRETS_LIST],[dnl
+          secret-files: |dnl
+dnl The funky first argument to _FORMAT_SECRET_FILES is a newline followed by the proper amount of whitespace
+_FORMAT_SECRET_FILES([[]
+            []],_SECRETS_LIST)
 ])dnl
           tags: |
             ghcr.io/${{ github.repository_owner }}/${{ github.workflow }}:latest
