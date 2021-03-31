@@ -21,7 +21,7 @@ RUN --mount=type=secret,id=scc_credentials zypper install -y --no-recommends sle
 RUN --mount=type=secret,id=key_home_okir_devstacks rpm --import /run/secrets/key_home_okir_devstacks
 
 # Add extra repositories
-RUN --mount=type=secret,id=scc_credentials zypper addrepo --refresh --no-gpgcheck https://download.opensuse.org/repositories/home:/okir:/devstacks/SLE_15_SP2/home:okir:devstacks.repo
+RUN --mount=type=secret,id=scc_credentials zypper addrepo --refresh https://download.opensuse.org/repositories/home:/okir:/devstacks/SLE_15_SP2/home:okir:devstacks.repo
 RUN --mount=type=secret,id=scc_credentials zypper refresh
 
 # Install packages

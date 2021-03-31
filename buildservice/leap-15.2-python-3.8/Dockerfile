@@ -19,7 +19,7 @@ PREFIXEDLABEL org.openbuildservice.disturl="%DISTURL%"
 PREFIXEDLABEL org.opensuse.reference="registry.opensuse.org/_OBS_REGISTRY_NAMESPACE/python-devel:%%PKG_VERSION%%.%RELEASE%"
 
 # Add extra repositories
-RUN zypper addrepo --refresh --no-gpgcheck https://download.opensuse.org/repositories/home:/okir:/devstacks/openSUSE_Leap_15.2/home:okir:devstacks.repo
+RUN zypper addrepo --refresh https://download.opensuse.org/repositories/home:/okir:/devstacks/openSUSE_Leap_15.2/home:okir:devstacks.repo
 RUN zypper refresh
 
 

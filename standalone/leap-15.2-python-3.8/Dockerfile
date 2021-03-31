@@ -15,7 +15,7 @@ RUN zypper install -y --no-recommends openSUSE-release-appliance-docker
 RUN --mount=type=secret,id=key_home_okir_devstacks rpm --import /run/secrets/key_home_okir_devstacks
 
 # Add extra repositories
-RUN zypper addrepo --refresh --no-gpgcheck https://download.opensuse.org/repositories/home:/okir:/devstacks/openSUSE_Leap_15.2/home:okir:devstacks.repo
+RUN zypper addrepo --refresh https://download.opensuse.org/repositories/home:/okir:/devstacks/openSUSE_Leap_15.2/home:okir:devstacks.repo
 RUN zypper refresh
 
 # Install packages
