@@ -11,6 +11,9 @@ LABEL org.opencontainers.image.version="3.8-$BUILDID"
 # Work around https://github.com/openSUSE/obs-build/issues/487
 RUN zypper install -y openSUSE-release-appliance-docker
 
+# Add extra gpg keys
+RUN --mount=type=secret,id=key_home_okir_devstacks rpm --import /run/secrets/key_home_okir_devstacks
+
 # Add extra repositories
 RUN zypper addrepo --refresh --no-gpgcheck https://download.opensuse.org/repositories/home:/okir:/devstacks/openSUSE_Leap_15.2/home:okir:devstacks.repo
 RUN zypper refresh
