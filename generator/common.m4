@@ -77,7 +77,7 @@ define([EXTRA_REPO],[
   )
 ])
 
-define([__ADD_ONE_REPO],[RUN zypper ar --refresh $1])
+define([__ADD_ONE_REPO],[_BUILD_ENABLE_REPO($1)])
 define([__ADD_REPOS],[dnl
 # Add extra repositories
 ifelse(
@@ -87,7 +87,10 @@ ifelse(
 __ADD_REPOS(shift($@))])[]dnl
 ])
 
-define([_ADD_EXTRA_REPOS],[ifdef([_EXTRA_REPO_LIST],[__ADD_REPOS(_EXTRA_REPO_LIST)])])
+define([_ADD_EXTRA_REPOS],[ifdef([_EXTRA_REPO_LIST],[dnl
+__ADD_REPOS(_EXTRA_REPO_LIST)
+_BUILD_REFRESH_REPOS
+])])
 
 define([EXTRA_OPENSUSE_REPO],[
  EXTRA_REPO(format([https://download.opensuse.org/repositories/%s/%s/%s.repo],

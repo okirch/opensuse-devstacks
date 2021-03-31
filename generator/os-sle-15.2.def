@@ -11,11 +11,16 @@ define([_BUILD_INSTALL_PACKAGES],[dnl
 RUN --mount=type=secret,id=scc_credentials \
   zypper install -y --no-recommends __PRINT_LIST($@)
 ])
+define([_BUILD_ENABLE_REPO],[dnl
+RUN --mount=type=secret,id=scc_credentials zypper addrepo --refresh --no-gpgcheck $1])
+define([_BUILD_REFRESH_REPOS],[dnl
+RUN --mount=type=secret,id=scc_credentials zypper refresh])
 
 define([_BUILD_SETUP],[
 RUN mv /etc/zypp /etc/zypp.save
 ADD SCC/sles15-sp2.tar.gz /etc/zypp
 RUN ln -sf /run/secrets/scc_credentials /etc/zypp/credentials.d/SCCcredentials
+RUN --mount=type=secret,id=scc_credentials zypper refresh
 
 # Work around https://github.com/openSUSE/obs-build/issues/487
 _BUILD_INSTALL_PACKAGES(sles-release)

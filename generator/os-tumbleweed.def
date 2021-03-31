@@ -8,6 +8,10 @@ define(_BUILD_CLEANUP,[# no cleanup required])
 define([_BUILD_INSTALL_PACKAGES],[dnl
 RUN zypper install -y --no-recommends __PRINT_LIST($@)
 ])
+define([_BUILD_ENABLE_REPO],[dnl
+RUN zypper addrepo --refresh --no-gpgcheck $1])
+define([_BUILD_REFRESH_REPOS],[dnl
+RUN zypper refresh])
 
 define([_BUILD_SETUP],[
 # Work around https://github.com/openSUSE/obs-build/issues/487
