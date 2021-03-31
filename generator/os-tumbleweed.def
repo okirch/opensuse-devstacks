@@ -4,7 +4,8 @@ define(_OBS_REGISTRY_HOST,[registry.opensuse.org])
 define(_OBS_REGISTRY_NAMESPACE,[opensuse])
 define([_OBS_DISTRO_ID],[Factory])
 define(_OCI_NAMESPACE_PREFIX,[org.opensuse])
-define(_BUILD_CLEANUP,[# no cleanup required])
+define(_BUILD_CLEANUP,[[#] no cleanup required
+])
 define([_BUILD_INSTALL_PACKAGES],[dnl
 RUN zypper install -y --no-recommends __PRINT_LIST($@)
 ])
@@ -16,4 +17,5 @@ RUN zypper refresh])
 define([_BUILD_SETUP],[
 # Work around https://github.com/openSUSE/obs-build/issues/487
 RUN zypper install -y openSUSE-release-appliance-docker
+
 ])

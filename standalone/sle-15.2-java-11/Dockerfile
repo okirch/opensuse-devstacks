@@ -18,7 +18,6 @@ RUN --mount=type=secret,id=scc_credentials \
   zypper install -y --no-recommends sles-release
 
 
-
 # Install packages
 RUN --mount=type=secret,id=scc_credentials \
   zypper install -y --no-recommends java-11-openjdk-devel osc maven git-core

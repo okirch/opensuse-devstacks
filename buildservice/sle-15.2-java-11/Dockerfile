@@ -19,7 +19,6 @@ PREFIXEDLABEL org.openbuildservice.disturl="%DISTURL%"
 PREFIXEDLABEL org.opensuse.reference="registry.suse.com/suse/sles/15.2/openjdk:%%PKG_VERSION%%.%RELEASE%"
 
 
-
 RUN mv /etc/zypp /etc/zypp.save
 ADD SCC/sles15-sp2.tar.gz /etc/zypp
 RUN ln -sf /run/secrets/scc_credentials /etc/zypp/credentials.d/SCCcredentials

@@ -18,7 +18,6 @@ RUN --mount=type=secret,id=scc_credentials \
   zypper install -y --no-recommends sles-release
 
 
-
 RUN zypper in -y ruby-2.5 ruby2.5-rubygem-bundler ruby-devel
 RUN zypper in -y git-core patch make gcc
 # Actually, I'd like to back out

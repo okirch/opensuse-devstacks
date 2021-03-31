@@ -24,8 +24,10 @@ RUN --mount=type=secret,id=scc_credentials zypper refresh
 
 # Work around https://github.com/openSUSE/obs-build/issues/487
 _BUILD_INSTALL_PACKAGES(sles-release)
+
 ])
 define(_BUILD_CLEANUP,[
 RUN rm -rf /etc/zypp
 RUN mv /etc/zypp.save /etc/zypp
+
 ])

@@ -1,7 +1,6 @@
 define(`_GENERATOR_BASEDIR',regexp(__file__,`\(.*\)/[^/]*$',`\1'))dnl
 dnl common.m4 redefines the quote characters to [ ]
 include(_GENERATOR_BASEDIR`/common.m4')dnl
-
 divert(-1)
 dnl ######################################
 dnl workflow specific macros

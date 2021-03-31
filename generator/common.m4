@@ -107,6 +107,7 @@ define([_ADD_EXTRA_REPOS],[ifdef([_EXTRA_REPO_LIST],[dnl
 # Add extra repositories
 __ADD_REPOS(_EXTRA_REPO_LIST)
 _BUILD_REFRESH_REPOS
+
 ])])
 
 define([EXTRA_GPGKEY],[
