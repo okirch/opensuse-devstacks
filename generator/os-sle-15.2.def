@@ -1,3 +1,5 @@
+include(_GENERATOR_BASEDIR[/suse-generic.def])
+
 BASE_IMAGE([suse/sle15:15.2])
 define([_OS_SHORT_NAME],[SLE 15 SP2])
 
@@ -7,15 +9,30 @@ define(_OBS_DISTRO_ID,[SLE_15_SP2])
 
 define(_OCI_NAMESPACE_PREFIX,[com.suse]) _OS_BASE_IS
 
-define([_BUILD_INSTALL_PACKAGES],[dnl
-RUN --mount=type=secret,id=scc_credentials \
-  zypper install -y --no-recommends __PRINT_LIST($@)
-])
-define([_BUILD_ENABLE_REPO],[dnl
-RUN --mount=type=secret,id=scc_credentials zypper addrepo --refresh --no-gpgcheck $1])
-define([_BUILD_REFRESH_REPOS],[dnl
-RUN --mount=type=secret,id=scc_credentials zypper refresh])
+#
+# Define how docker should run zypper
+# SLE overrides this to share SCC credentials with the zypper
+# command
+#
+define([_RUN_ZYPPER],[RUN --mount=type=secret,id=scc_credentials zypper])
 
+#
+# SLE specific build setup.
+# As we don't want to leak SCC credentials, we never copy them to the image
+# that we're building. Instead, we preserve the contents of /etc/zypp of the
+# base image, then drop a tarball of a pre-registered SLES system in its
+# place (MINUS /etc/zypp/credentials.d/SCCcredentials). The SCCcredentials
+# file becomes a symlink to /run/secrets/scc_credentials.
+#
+# Whenever we run zypper, we instruct docker to mount a secrets file containing
+# the SCC credentials to /run/secrets/scc_credentials.
+#
+# When done with the image build, remove the whole /etc/zypp scaffold and
+# restore what was there previously.
+#
+# Would be nice if github's build-and-push action supported --squash
+# some way or other, but AFAICT it currently doesn't.
+#
 define([_BUILD_SETUP],[
 RUN mv /etc/zypp /etc/zypp.save
 ADD SCC/sles15-sp2.tar.gz /etc/zypp
@@ -26,7 +43,7 @@ RUN --mount=type=secret,id=scc_credentials zypper refresh
 _BUILD_INSTALL_PACKAGES(sles-release)
 
 ])
-define(_BUILD_CLEANUP,[
+define([_BUILD_CLEANUP],[
 RUN rm -rf /etc/zypp
 RUN mv /etc/zypp.save /etc/zypp
 

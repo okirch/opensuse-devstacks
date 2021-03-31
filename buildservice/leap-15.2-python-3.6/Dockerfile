@@ -20,7 +20,7 @@ PREFIXEDLABEL org.opensuse.reference="registry.opensuse.org/_OBS_REGISTRY_NAMESP
 
 
 # Work around https://github.com/openSUSE/obs-build/issues/487
-RUN zypper install -y openSUSE-release-appliance-docker
+RUN zypper install -y --no-recommends openSUSE-release-appliance-docker
 
 RUN zypper in -y python3-base python3-pip python3-setuptools python3-wheel
 

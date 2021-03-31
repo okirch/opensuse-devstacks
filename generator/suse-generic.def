@@ -1,0 +1,22 @@
+#
+# Default settings for SUSE based OSs
+#
+define(_BUILD_SETUP,[[#] no setup required
+])
+define(_BUILD_CLEANUP,[[#] no cleanup required
+])
+
+#
+# Define how docker should run zypper
+# SLE will override this to share SCC credentials with the zypper
+# command
+#
+define([_RUN_ZYPPER],[RUN zypper])
+
+define([_BUILD_INSTALL_PACKAGES],[dnl
+_RUN_ZYPPER install -y --no-recommends __PRINT_LIST($@)
+])
+define([_BUILD_ENABLE_REPO],[dnl
+_RUN_ZYPPER addrepo --refresh --no-gpgcheck $1])
+define([_BUILD_REFRESH_REPOS],[dnl
+_RUN_ZYPPER refresh])

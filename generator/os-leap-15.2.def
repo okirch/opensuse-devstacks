@@ -1,3 +1,4 @@
+include(_GENERATOR_BASEDIR[/suse-generic.def])dnl
 BASE_IMAGE([opensuse/leap:15.2])
 define([_OS_SHORT_NAME],[Leap 15.2])
 dnl
@@ -10,20 +11,7 @@ dnl define(_OBS_REGISTRY_NAMESPACE,[opensuse])
 define([_OBS_DISTRO_ID],[openSUSE_Leap_15.2])
 define(_OCI_NAMESPACE_PREFIX,[org.opensuse])
 
-define(_BUILD_SETUP,[[#] no setup required
-])
-define(_BUILD_CLEANUP,[[#] no cleanup required
-])
-define([_BUILD_INSTALL_PACKAGES],[dnl
-RUN zypper install -y --no-recommends __PRINT_LIST($@)
-])
-define([_BUILD_ENABLE_REPO],[dnl
-RUN zypper addrepo --refresh --no-gpgcheck $1])
-define([_BUILD_REFRESH_REPOS],[dnl
-RUN zypper refresh])
-
 define([_BUILD_SETUP],[
 # Work around https://github.com/openSUSE/obs-build/issues/487
-RUN zypper install -y openSUSE-release-appliance-docker
-
+_BUILD_INSTALL_PACKAGES(openSUSE-release-appliance-docker)
 ])

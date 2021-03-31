@@ -9,7 +9,7 @@ LABEL org.opencontainers.image.version="2.5-$BUILDID"
 
 
 # Work around https://github.com/openSUSE/obs-build/issues/487
-RUN zypper install -y openSUSE-release-appliance-docker
+RUN zypper install -y --no-recommends openSUSE-release-appliance-docker
 
 RUN zypper in -y ruby-2.5 ruby2.5-rubygem-bundler ruby-devel
 RUN zypper in -y git-core patch make gcc
