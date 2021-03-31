@@ -7,4 +7,3 @@ IMAGE_PACKAGES(python38-base,python38-pip,python38-setuptools,python38-wheel)
 ifdef([_BASE_OS_TUMBLEWEED],[],[
  EXTRA_OPENSUSE_REPO(home:okir:devstacks)
 ])
-https://download.opensuse.org/repositories/home:/okir:/devstacks/SLE_15_SP2/home:okir:devstacks.repo)
