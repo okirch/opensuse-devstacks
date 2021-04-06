@@ -140,6 +140,15 @@ workflow)
 		exit 1
 	esac
 	: ;;
+readme)
+	case $opt_environment in
+	standalone)
+		opt_outfile_format="%ENVIRONMENT/%OS-%IMAGE/README.md";;
+	*)
+		echo "Don't know how to create a readme for environment $opt_environment" >&2
+		exit 1
+	esac
+	: ;;
 table)
 	: ${opt_outfile:=table.html}
 	: ;;
