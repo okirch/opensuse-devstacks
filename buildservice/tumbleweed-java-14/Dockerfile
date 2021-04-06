@@ -12,7 +12,7 @@ ARG BUILDID=0
 
 # labelprefix=org.opensuse.openjdk
 PREFIXEDLABEL org.opencontainers.image.title="Java 14 development container"
-PREFIXEDLABEL org.opencontainers.image.description="Environment for Java 14 development"
+PREFIXEDLABEL org.opencontainers.image.description="Development environment for Java 14"
 PREFIXEDLABEL org.opencontainers.image.created="%BUILDTIME%"
 PREFIXEDLABEL org.opencontainers.image.version="%%PKG_VERSION%%.%RELEASE%"
 PREFIXEDLABEL org.openbuildservice.disturl="%DISTURL%"

@@ -4,7 +4,7 @@ FROM registry.opensuse.org/opensuse/tumbleweed
 ARG BUILDID=0
 
 LABEL org.opencontainers.image.title="Java 14 development container"
-LABEL org.opencontainers.image.description="Environment for Java 14 development"
+LABEL org.opencontainers.image.description="Development environment for Java 14"
 LABEL org.opencontainers.image.version="14-$BUILDID"
 
 

@@ -4,7 +4,7 @@ FROM registry.opensuse.org/opensuse/leap:15.2
 ARG BUILDID=0
 
 LABEL org.opencontainers.image.title="Ruby 2.5 container"
-LABEL org.opencontainers.image.description="Environment for Ruby 2.5"
+LABEL org.opencontainers.image.description="Development environment for Ruby 2.5"
 LABEL org.opencontainers.image.version="2.5-$BUILDID"
 
 

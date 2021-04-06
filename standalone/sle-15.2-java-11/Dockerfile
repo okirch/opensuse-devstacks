@@ -4,7 +4,7 @@ FROM registry.suse.com/suse/sle15:15.2
 ARG BUILDID=0
 
 LABEL org.opencontainers.image.title="Java 11 development container"
-LABEL org.opencontainers.image.description="Environment for Java 11 development"
+LABEL org.opencontainers.image.description="Development environment for Java 11"
 LABEL org.opencontainers.image.version="11-$BUILDID"
 
 

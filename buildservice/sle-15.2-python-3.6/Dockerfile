@@ -12,7 +12,7 @@ ARG BUILDID=0
 
 # labelprefix=com.suse.python-devel
 PREFIXEDLABEL org.opencontainers.image.title="Python 3.6 container"
-PREFIXEDLABEL org.opencontainers.image.description="Environment for Python 3.6"
+PREFIXEDLABEL org.opencontainers.image.description="Development environment for Python 3.6"
 PREFIXEDLABEL org.opencontainers.image.created="%BUILDTIME%"
 PREFIXEDLABEL org.opencontainers.image.version="%%PKG_VERSION%%.%RELEASE%"
 PREFIXEDLABEL org.openbuildservice.disturl="%DISTURL%"

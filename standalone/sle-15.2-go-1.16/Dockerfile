@@ -4,7 +4,7 @@ FROM registry.suse.com/suse/sle15:15.2
 ARG BUILDID=0
 
 LABEL org.opencontainers.image.title="GO 1.16 development container"
-LABEL org.opencontainers.image.description="Environment for GO 1.16 development"
+LABEL org.opencontainers.image.description="Development environment for GO 1.16"
 LABEL org.opencontainers.image.version="1.16-$BUILDID"
 
 

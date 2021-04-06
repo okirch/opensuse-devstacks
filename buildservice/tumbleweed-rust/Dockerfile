@@ -12,7 +12,7 @@ ARG BUILDID=0
 
 # labelprefix=org.opensuse.rust-devel
 PREFIXEDLABEL org.opencontainers.image.title="Rust development container"
-PREFIXEDLABEL org.opencontainers.image.description="Environment for Rust development"
+PREFIXEDLABEL org.opencontainers.image.description="Development environment for Rust 1.50"
 PREFIXEDLABEL org.opencontainers.image.created="%BUILDTIME%"
 PREFIXEDLABEL org.opencontainers.image.version="%%PKG_VERSION%%.%RELEASE%"
 PREFIXEDLABEL org.openbuildservice.disturl="%DISTURL%"

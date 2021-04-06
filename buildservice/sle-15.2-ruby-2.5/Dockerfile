@@ -12,7 +12,7 @@ ARG BUILDID=0
 
 # labelprefix=com.suse.python-devel
 PREFIXEDLABEL org.opencontainers.image.title="Ruby 2.5 container"
-PREFIXEDLABEL org.opencontainers.image.description="Environment for Ruby 2.5"
+PREFIXEDLABEL org.opencontainers.image.description="Development environment for Ruby 2.5"
 PREFIXEDLABEL org.opencontainers.image.created="%BUILDTIME%"
 PREFIXEDLABEL org.opencontainers.image.version="%%PKG_VERSION%%.%RELEASE%"
 PREFIXEDLABEL org.openbuildservice.disturl="%DISTURL%"

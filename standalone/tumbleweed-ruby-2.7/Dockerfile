@@ -4,7 +4,7 @@ FROM registry.opensuse.org/opensuse/tumbleweed
 ARG BUILDID=0
 
 LABEL org.opencontainers.image.title="Ruby 2.7 container"
-LABEL org.opencontainers.image.description="Environment for Ruby 2.7"
+LABEL org.opencontainers.image.description="Development environment for Ruby 2.7"
 LABEL org.opencontainers.image.version="2.7-$BUILDID"
 
 

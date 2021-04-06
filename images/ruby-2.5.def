@@ -1,6 +1,6 @@
 IMAGE_COMPATIBLE(leap-15.2, sle-15.2)
 IMAGE_TITLE([Ruby 2.5 container])
-IMAGE_DESCRIPTION([Environment for Ruby 2.5])
+IMAGE_DESCRIPTION([Development environment for Ruby 2.5])
 IMAGE_TAG(python-devel)
 IMAGE_VERSION(2.5)
 IMAGE_MAIN_PACKAGE(ruby-2.5)

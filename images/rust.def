@@ -1,6 +1,6 @@
 IMAGE_COMPATIBLE(tumbleweed)
 IMAGE_TITLE([Rust development container])
-IMAGE_DESCRIPTION([Environment for Rust development])
+IMAGE_DESCRIPTION([Development environment for Rust 1.50])
 IMAGE_TAG(rust-devel)
 IMAGE_VERSION(1.50)
 IMAGE_PACKAGES(rust,cargo,clippy,rls,rustfmt,rust-gdb)

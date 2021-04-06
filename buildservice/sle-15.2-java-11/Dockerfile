@@ -12,7 +12,7 @@ ARG BUILDID=0
 
 # labelprefix=com.suse.openjdk
 PREFIXEDLABEL org.opencontainers.image.title="Java 11 development container"
-PREFIXEDLABEL org.opencontainers.image.description="Environment for Java 11 development"
+PREFIXEDLABEL org.opencontainers.image.description="Development environment for Java 11"
 PREFIXEDLABEL org.opencontainers.image.created="%BUILDTIME%"
 PREFIXEDLABEL org.opencontainers.image.version="%%PKG_VERSION%%.%RELEASE%"
 PREFIXEDLABEL org.openbuildservice.disturl="%DISTURL%"

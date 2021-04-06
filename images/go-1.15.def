@@ -1,6 +1,6 @@
 IMAGE_COMPATIBLE(tumbleweed, leap-15.2, sle-15.2)
 IMAGE_TITLE([GO 1.15 development container])
-IMAGE_DESCRIPTION([Environment for GO 1.15 development])
+IMAGE_DESCRIPTION([Development environment for GO 1.15])
 IMAGE_TAG(golang)
 IMAGE_VERSION(1.15)
 IMAGE_PACKAGES(go1.15,git-core)

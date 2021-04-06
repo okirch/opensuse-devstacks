@@ -4,7 +4,7 @@ FROM registry.opensuse.org/opensuse/tumbleweed
 ARG BUILDID=0
 
 LABEL org.opencontainers.image.title="Python 3.8 container"
-LABEL org.opencontainers.image.description="Environment for Python 3.8"
+LABEL org.opencontainers.image.description="Development environment for Python 3.8"
 LABEL org.opencontainers.image.version="3.8-$BUILDID"
 
 

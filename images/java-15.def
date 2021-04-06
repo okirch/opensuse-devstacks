@@ -1,6 +1,6 @@
 IMAGE_COMPATIBLE(tumbleweed)
 IMAGE_TITLE([Java 15 development container])
-IMAGE_DESCRIPTION([Environment for Java 15 development])
+IMAGE_DESCRIPTION([Development environment for Java 15])
 IMAGE_TAG(openjdk)
 IMAGE_VERSION(15)
 IMAGE_PACKAGES(java-15-openjdk-devel,maven,git-core)

@@ -12,7 +12,7 @@ ARG BUILDID=0
 
 # labelprefix=com.suse.golang
 PREFIXEDLABEL org.opencontainers.image.title="GO 1.15 development container"
-PREFIXEDLABEL org.opencontainers.image.description="Environment for GO 1.15 development"
+PREFIXEDLABEL org.opencontainers.image.description="Development environment for GO 1.15"
 PREFIXEDLABEL org.opencontainers.image.created="%BUILDTIME%"
 PREFIXEDLABEL org.opencontainers.image.version="%%PKG_VERSION%%.%RELEASE%"
 PREFIXEDLABEL org.openbuildservice.disturl="%DISTURL%"
