@@ -1,0 +1,1121 @@
+#!/usr/bin/python3
+#
+# Copyright (C) 2021 Olaf Kirch <okir@suse.com>
+#
+# Frobber
+# This intelligently named script retrieves a container image (eg from a registry)
+# and converts "known" SUSE layers to an external reference.
+#
+# This allows software vendors to create images based on SUSE base images, and
+# distribute them without redistributing the actual SUSE layers.
+#
+# For the time being, this is more a concept of how this could work, rather than a
+# complete implementation.
+#
+# ./frobber docker:registry.opensuse.org/opensuse/nginx:latest
+#
+
+import sys
+import json
+import os.path
+import copy
+import io
+import tempfile
+
+class ImageLoadError(Exception):
+	def __init__(self, image, reason):
+		self.image = image
+		self.reason = reason
+
+class ImageManifest(object):
+	def __init__(self, schemaVersion = 2, mediaType = None, config = None, layers = []):
+		self.schemaVersion = schemaVersion
+		self.mediaType = mediaType
+		self.config = OCIDescriptor(**config)
+		self.layers = [OCIDescriptor(**l) for l in layers]
+
+class ImageConfig(object):
+	def __init__(self, config = None, **other):
+		self.config = config
+		self.other = other
+
+class ImageIndex(object):
+	def __init__(self, schemaVersion = 2, mediaType = None, manifests = []):
+		self.schemaVersion = schemaVersion
+		self.mediaType = mediaType
+		self.manifests = [OCIDescriptor(**mf) for mf in manifests]
+
+	def find(self, architecture = None):
+		wildcard = None
+		for mf in self.manifests:
+			platform = getattr(mf, 'platform', None)
+			if platform is None:
+				if wildcard is not None:
+					raise ValueError("Image index lists more than one descriptor without platform")
+				wildcard = mf
+				continue
+
+			if platform['architecture'] == architecture:
+				return mf
+
+		return wildcard
+
+from types import SimpleNamespace
+
+class OCIDescriptor(SimpleNamespace):
+	def __init__(self, **d):
+		super(OCIDescriptor, self).__init__(**d)
+
+		mediaType = getattr(self, 'mediaType', None)
+		if mediaType is not None:
+			self._parsedMediaType = MediaType(mediaType)
+
+	def addURL(self, url):
+		urlList = getattr(self, 'urls', [])
+		urlList.append(url)
+		self.urls = urlList
+
+	def isImageIndex(self):
+		return self._parsedMediaType.isImageIndex()
+
+	def isManifest(self):
+		return self._parsedMediaType.isManifest()
+
+	def isImageLayer(self):
+		return self._parsedMediaType.isImageLayer()
+
+	def isCompressed(self):
+		return self._parsedMediaType.compression is not None
+
+	def asUncompressed(self, img):
+		import hashlib
+
+		f = img.openLayerBlob(self, uncompress = True)
+
+		hash = hashlib.new(self.digestAlgorithm())
+		size = 0
+		while True:
+			data = f.read(65536)
+			if not data:
+				break
+			hash.update(data)
+			size += len(data)
+
+		ret = copy.deepcopy(self)
+		ret._parsedMediaType.compression = None
+		ret.mediaType = repr(ret._parsedMediaType)
+		ret.size = size
+
+		ret.digest = "%s:%s" % (hash.name, hash.hexdigest())
+
+		return ret
+
+	def isExternalReference(self):
+		return self._parsedMediaType.isExternalReference()
+
+	def asExternalReference(self, img):
+		ret = copy.deepcopy(self)
+
+		# Change the mediaType to an external reference and set the URLs
+		ret.makeExternalReference()
+		ret.addURL(img.loader.blobURL(img, self))
+
+		return ret
+
+	def makeExternalReference(self):
+		self._parsedMediaType.makeExternalReference()
+		self.mediaType = repr(self._parsedMediaType)
+
+	def digestAlgorithm(self):
+		assert(':' in self.digest)
+		return self.digest.split(':')[0]
+
+	def vendor(self):
+		return self._parsedMediaType.vendor
+
+	def sameVendor(self, vendor):
+		return self._parsedMediaType.vendor == vendor
+
+	def asVendor(self, vendor):
+		ret = copy.deepcopy(self)
+		ret._parsedMediaType.changeVendor(vendor)
+		ret.mediaType = repr(ret._parsedMediaType)
+
+		print("  Converted %s -> %s for vendor compatibility" % (self.mediaType, ret.mediaType))
+		return ret
+
+	def platformString(self):
+		try:
+			platform = self.platform
+		except:
+			return "any platform"
+
+		arch = platform['architecture']
+		os = platform.get('os')
+		if os is None:
+			return arch
+
+		return os + "/" + arch
+
+class JSONObjectEncoder(json.JSONEncoder):
+	def default(self, o):
+		assert(isinstance(o, object))
+
+		d = dict()
+		for key in dir(o):
+			if key.startswith('_'):
+				continue
+
+			value = getattr(o, key)
+			if callable(value) or value is None:
+				continue
+
+			d[key] = value
+
+		return d
+
+
+class ImageFormat(object):
+	def __init__(self):
+		self._cache = None
+		self.architecture = None
+
+	def setArchitecture(self, arch):
+		self.architecture = arch
+
+	def setCacheDir(self, path):
+		self._cache = ImageBlobCache(path)
+
+	def spec(self):
+		raise NotImplementedError("%s: method spec() not implemented" % self.__class__.__name__)
+
+	@staticmethod
+	def splitImageSpec(spec):
+		assert(':' in spec)
+		return spec.split(':', 1)
+
+	def writeString(self, f, versionString):
+		print(versionString, file = f)
+
+	def parseImageIndex(self, f, missingMediaTypeOK = False):
+		return self.loadJSON(f, ImageIndex, MediaType.indexValidator(missingMediaTypeOK))
+
+	def writeImageIndex(self, f, mfl):
+		self.storeJSON(f, mfl)
+
+	def pickManifestFromIndex(self, mfList):
+		# Find the manifest matching the desired architecture
+		desc = mfList.find(architecture = self.architecture or "amd64")
+		assert(desc and desc.isManifest())
+
+		print("  Using manifest for %s: %s" % (desc.platformString(), desc.digest))
+		return desc
+
+	def parseManifest(self, f, missingMediaTypeOK = False):
+		mf = self.loadJSON(f, ImageManifest, MediaType.manifestValidator(missingMediaTypeOK))
+
+		if mf.schemaVersion != 2:
+			raise ValueError("Unexpected manifest schemaVersion \"%s\"" % mf.schemaVersion)
+
+		return mf
+
+	def writeManifest(self, f, mf):
+		self.storeJSON(f, mf)
+
+	def parseConfig(self, f):
+		return self.loadJSON(f, ImageConfig)
+
+	def loadConfig(self, img, d):
+		with self.openBlob(img, d, mode = "r") as f:
+			return self.parseConfig(f)
+
+	def loadJSON(self, f, toplevelClass = None, validator = None):
+		from types import SimpleNamespace
+
+		# Parse JSON into an object with attributes corresponding to dict keys.
+		data = json.load(f)
+
+		if validator:
+			validator.validateJSON(data)
+
+		if toplevelClass:
+			return toplevelClass(**data)
+
+		return data
+
+	def storeJSON(self, f, obj):
+		json.dump(obj, cls = JSONObjectEncoder, fp = f, indent = "\t")
+
+	def blobPath(self, d):
+		return None
+
+	def blobURL(self, img, d):
+		raise NotImplementedError("%s: method blobURL() not implemented" % self.__class__.__name__)
+
+	def tryToHardlinkBlob(self, srcPath, d):
+		return False
+
+class ImageFormatDockerRegistry(ImageFormat):
+	# Expect an image spec including the registry name
+	def __init__(self, path):
+		self.path = path
+		self.name = None
+		self.version = None
+
+		self.guessURL(path)
+		return
+
+	def spec(self):
+		return self.url._replace(scheme = "docker").geturl()
+
+	def load(self):
+		if ':' in self.url.path:
+			(name, version) = self.url.path.split(':', 1)
+		else:
+			(name, version) = self.url.path, 'latest'
+
+		name = name.strip('/')
+
+		with self.openURL("v2/%s/manifests/%s" % (name, version)) as f:
+			mfList = self.parseImageIndex(f)
+
+		desc = self.pickManifestFromIndex(mfList)
+
+		img = Image(name, version)
+
+		# Now load the actual manifest
+		with self.openManifest(img, desc) as f:
+			mf = self.parseManifest(f)
+
+		img.setManifest(mf, self)
+
+		return img
+
+	def openURL(self, partialURL, mode = "r"):
+		return self.download(partialURL, mode = mode)
+
+	def openManifest(self, img, d):
+		return self.openURL("v2/%s/manifests/%s" % (img.name, d.digest))
+
+	def openBlob(self, img, d, mode = "rb"):
+		if mode.startswith('w'):
+			raise ValueError("%s: image push not yet implemented" % self.__class__.__name__)
+
+		cacheHandle = None
+		if self._cache:
+			cacheHandle = self._cache.createHandleFor(d.digest)
+
+		return self.download("v2/%s/blobs/%s" % (img.name, d.digest), mode, cache = cacheHandle)
+
+	def blobURL(self, img, d):
+		return self.makeURL("v2/%s/blobs/%s" % (img.name, d.digest))
+
+	def makeURL(self, partialURL):
+		return self.url._replace(path = partialURL).geturl()
+
+	def download(self, partialURL, mode = "rb", cache = None):
+		import urllib.request
+		from urllib.error import HTTPError
+		import io
+
+		url = self.url._replace(path = partialURL).geturl()
+
+		if cache:
+			f = cache.open(mode)
+			if f:
+				print("  Using cached data for %s" % url)
+				return f
+
+		print("Downloading %s" % url)
+
+		if self.url.netloc == 'registry.suse.com':
+			print("  %s requires authentication; don't be too surprised if this download fails" % self.url.netloc)
+
+		req = urllib.request.Request(url)
+
+		try:
+			resp = urllib.request.urlopen(req)
+		except HTTPError as e:
+			raise ImageLoadError(self.path, str(e))
+
+		if resp.status != 200:
+			raise ImageLoadError(self.path, str(e))
+			raise ValueError("Unable to retrieve %s: status %s (%s)" % (
+				url, resp.status, resp.reason))
+
+		if cache:
+			cache.put(resp)
+			return cache.open(mode)
+
+		if 'b' not in mode:
+			return io.StringIO(resp.read().decode())
+
+		return resp
+
+	def guessURL(self, path):
+		if self.tryThisURL(path):
+			return
+
+		if self.tryThisURL("//" + path):
+			return
+
+		if self.tryThisURL(ImageFormatFactory.defaultRegistryURL + "/" + path):
+			return
+
+		raise ValueError("Cannot parse registry image name \"%s\"" % path)
+
+	def tryThisURL(self, path):
+		from urllib.parse import urlparse
+		import socket
+
+		# print("tryThisURL(%s)" % path)
+
+		url = urlparse(path, scheme = 'https')
+		if not url.netloc or not url.path:
+			return False
+
+		try:
+			socket.gethostbyname(url.netloc)
+		except:
+			# Not a valid hostname
+			return False
+
+		# print("url = %s" % (url,))
+		self.url = url
+		return True
+
+class ImageFormatDir(ImageFormat):
+	def __init__(self, path, name = None):
+		self.path = path
+		self.name = name or os.path.basename(path)
+		self.version = None
+
+		self.transportVersion = "1.1"
+
+	def spec(self):
+		return "dir:%s" % self.path
+
+	def open(self, relativePath, mode = "r"):
+		if mode == "w":
+			if not os.path.isdir(self.path):
+				os.makedirs(self.path)
+
+		filename = os.path.join(self.path, relativePath)
+		return open(filename, mode)
+
+	def load(self):
+		with self.open("version") as f:
+			self.parseVersion(f)
+
+		# Note, "podman build" and subsequent "podman push" to a Dir seems to
+		# result in a manifest.json without mediaType
+		with self.open("manifest.json") as f:
+			mf = self.parseManifest(f, missingMediaTypeOK = True)
+
+		img = Image(self.name, self.version)
+		img.setManifest(mf, self)
+
+		return img
+
+	def save(self, img):
+		with self.open("version", "w") as f:
+			self.writeString(f, "Directory Transport Version: %s" % self.transportVersion)
+
+		with self.open("manifest.json", "w") as f:
+			self.writeManifest(f, img.manifest)
+		print("Wrote manifest")
+
+		self.copyBlob(img, img.manifest.config)
+		print("Wrote config")
+
+		for d in img.manifest.layers:
+			print("  saving layer %s" % d.mediaType)
+			if d.isExternalReference():
+				print("Skipping blob %s (external reference)" % d.digest)
+			else:
+				self.copyBlob(img, d)
+
+	def parseVersion(self, f):
+		version = None
+
+		for l in f.readlines():
+			l = l.strip()
+			if not l:
+				continue
+
+			(header, value) = l.split(':', 1)
+			if header != "Directory Transport Version":
+				print("version file contains unknown header \"%s\"" % header)
+				continue
+
+			if version:
+				raise ImageLoadError(self.spec(), "version file contains duplicate header \"%s\"" % header)
+
+			version = value.strip()
+
+		if version is None:
+			raise ImageLoadError(self.spec(), "No Directory Transport Version header in version file")
+
+		if version != "1.1":
+			raise ImageLoadError(self.spec(), "Incompatible Directory Transport Version \"%s\" in version file" % version)
+
+		self.transportVersion = version
+
+	def copyBlob(self, img, d):
+		print("Copying blob %s" % d.digest)
+
+		assert(img.loader)
+		loader = img.loader
+
+		path = loader.blobPath(d)
+		if not self.tryToHardlinkBlob(path, d):
+			f = loader.openBlob(img, d)
+			self.saveBlob(img, d, f)
+
+	def blobPath(self, d):
+		name = self.digestStripPrefix(d.digest)
+
+		filename = os.path.join(self.path, name)
+		# print("blobPath(%s) = %s" % (d.digest, filename))
+		return filename
+
+	def tryToHardlinkBlob(self, srcPath, d):
+		if srcPath is None or not os.path.isfile(srcPath):
+			return False
+
+		dstPath = self.blobPath(d)
+
+		if os.path.exists(dstPath):
+			os.remove(dstPath)
+
+		try:
+			os.link(srcPath, dstPath)
+			# print("Created hard link %s -> %s" % (srcPath, dstPath))
+			return True
+		except:
+			pass
+
+		return False
+
+	def openBlob(self, img, d, mode = "rb"):
+		path = self.blobPath(d)
+		return open(path, mode)
+
+	def saveBlob(self, img, d, src):
+		dst = self.openBlob(img, d, "wb")
+		while True:
+			b = src.read(65536)
+			if not b:
+				break
+			dst.write(b)
+
+		dst.flush()
+
+	def digestStripPrefix(self, digest):
+		if ':' in digest:
+			digest = digest.split(':', 1)[1]
+		return digest
+
+import contextlib
+
+class TarMemberWriter(contextlib.AbstractContextManager):
+	def __init__(self, path, mode, th):
+		self.f = tempfile.NamedTemporaryFile(mode = mode, delete = True)
+		self.path = path
+		self.th = th
+
+	def __enter__(self):
+		return self.f
+
+	def __exit__(self, exc_type, exc_value, traceback):
+		if exc_type:
+			return False
+
+		self.f.flush()
+
+		f = open(self.f.name, mode = "rb")
+
+		info = self.th.gettarinfo(arcname = self.path, fileobj = f)
+		info.uname = 'root'
+		info.gname = 'root'
+		info.mode = 0o644
+		info.uid = 0
+		info.gid = 0
+
+		# print("Adding %s to tar file: size %d" % (self.path, info.size))
+		self.th.addfile(info, fileobj = f)
+
+class ImageFormatOCIArchive(ImageFormat):
+	def __init__(self, path, name = None):
+		self.path = path
+		self.name = name or os.path.basename(path)
+		self.version = None
+
+		self._th = False
+		self._writing = False
+
+		self.ociLayout = {
+			'imageLayoutVersion': '1.0.0'
+		}
+
+	def close(self):
+		self._th = False
+		self._writing = False
+
+	def spec(self):
+		return "oci-archive:%s" % self.path
+
+	def open(self, relativePath, mode = "r"):
+		if self._writing and 'w' not in mode or \
+		   not self._writing and 'w' in mode:
+			raise ValueError("%s: file mode %s not compatible with archive open mode" % (self.__class__.__name__, mode))
+
+		if self._writing:
+			return TarMemberWriter(relativePath, mode, self._th)
+
+		member = self._th.getmember(relativePath)
+		f = self._th.extractfile(member)
+		if 'b' not in mode:
+			return io.TextIOWrapper(f)
+
+		return f
+
+	def load(self):
+		import tarfile
+
+		self.close()
+
+		self._th = tarfile.open(self.path, mode = 'r')
+
+		with self.open("oci-layout") as f:
+			self.parseOCILayout(f)
+
+		with self.open("index.json") as f:
+			mfList = self.parseImageIndex(f, missingMediaTypeOK = True)
+
+		desc = self.pickManifestFromIndex(mfList)
+
+		img = Image(self.name, self.version)
+
+		# Now load the image for that manifest
+		with self.openManifest(img, desc) as f:
+			mf = self.parseManifest(f, missingMediaTypeOK = True)
+
+		img.setManifest(mf, self)
+
+		return img
+
+	def openManifest(self, img, d):
+		return self.openBlob(img, d)
+
+	def save(self, img):
+		import tarfile
+
+		self.close()
+
+		self._th = tarfile.open(self.path, mode = 'w')
+		self._writing = True
+
+		with self.open("oci-layout", "w") as f:
+			self.storeJSON(f, self.ociLayout)
+
+		index = ImageIndex()
+		index.manifests.append(img.manifest)
+
+		with self.open("index.json", "w") as f:
+			self.writeImageIndex(f, index)
+		print("Wrote manifest")
+
+		self.copyBlob(img, img.manifest.config)
+		print("Wrote config")
+
+		for d in img.manifest.layers:
+			print("  saving layer %s" % d.mediaType)
+			if d.isExternalReference():
+				print("Skipping blob %s (external reference)" % d.digest)
+			else:
+				self.copyBlob(img, d)
+
+	def parseOCILayout(self, f):
+		data = self.loadJSON(f)
+
+		version = data.get('imageLayoutVersion')
+		if version != '1.0.0':
+			raise ImageLoadError(self.spec(), "Unexpected imageLayoutVersion \"%s\" in oci-layout" % version)
+
+		self.ociLayout = data
+
+	def copyBlob(self, img, d):
+		print("Copying blob %s" % d.digest)
+
+		assert(img.loader)
+		loader = img.loader
+
+		with loader.openBlob(img, d) as f:
+			self.saveBlob(img, d, f)
+
+	def blobPath(self, d):
+		name = d.digest
+		if ':' in name:
+			name = name.replace(':', '/')
+
+		return "blobs/" + name
+
+	def openBlob(self, img, d, mode = "rb"):
+		path = self.blobPath(d)
+		return self.open(path, mode)
+
+	def saveBlob(self, img, d, src):
+		with self.openBlob(img, d, "wb") as dst:
+			while True:
+				b = src.read(65536)
+				if not b:
+					break
+				dst.write(b)
+
+			dst.flush()
+
+class ImageFormatFactory(object):
+	defaultRegistryURL = "https://registry.opensuse.org"
+
+	formatDict = {
+		"docker": ImageFormatDockerRegistry,
+		"dir": ImageFormatDir,
+		"oci-archive": ImageFormatOCIArchive,
+	}
+
+	@staticmethod
+	def parseImageSpec(spec):
+		import re
+
+		m = re.match("^([-a-z]+):(.*)", spec)
+		if m:
+			(type, name) = m.groups()
+		else:
+			(type, name) = ('docker', spec)
+
+		fmt = ImageFormatFactory.getLoaderClass(type)
+		return fmt(name)
+
+	@staticmethod
+	def getLoaderClass(type):
+		fmt = ImageFormatFactory.formatDict.get(type)
+		if fmt is None:
+			raise ValueError("Unknown image type \"%s\" in \"%s\"" % (type, spec))
+
+		return fmt
+
+class ImageBlobCache(object):
+	class CacheObject:
+		def __init__(self, dirpath, filepath):
+			self._directory = dirpath
+			self._filename = filepath
+
+		def open(self, mode = "rb"):
+			if mode.startswith('w'):
+				if not os.path.isdir(self._directory):
+					os.makedirs(self._directory)
+			elif not os.path.isfile(self._filename):
+				return None
+
+			return open(self._filename, mode)
+
+		def put(self, resp):
+			f = self.open("wb")
+			while True:
+				b = resp.read(65536)
+				if not b:
+					break
+				f.write(b)
+
+			f.flush()
+			f.close()
+
+	def __init__(self, path):
+		self._path = path
+
+	def createHandleFor(self, digest):
+		return self.CacheObject(self._path, os.path.join(self._path, digest))
+
+
+class Image(object):
+	def __init__(self, name, version = None):
+		self.name = name
+		self.version = version
+		self.manifest = None
+		self.loader = None
+
+		self._config = None
+		self._layers = {}
+
+	def spec(self):
+		if not self.loader:
+			raise ValueError("No external storage associated with this image")
+
+		return self.loader.spec()
+
+	def setManifest(self, manifest, loader = None):
+		self.manifest = manifest
+		self.loader = loader
+
+		if self.version is None or self.version == 'latest':
+			# Get the version from the image
+			pass
+
+
+	def getPotentialBaseImages(self):
+		config = img.getConfig()
+		labels = config.config.get('Labels') or {}
+
+		baseImages = set()
+		for (label, value) in labels.items():
+			if (label.startswith('org.opensuse.') or label.startswith('com.suse.')) and \
+			   label.endswith('.reference'):
+				print("This image is based on %s" % value)
+				baseImages.add(value)
+
+		return baseImages
+
+	def getConfig(self):
+		if not self._config:
+			assert(self.loader)
+			assert(self.manifest)
+			assert(self.manifest.config)
+
+			self._config = self.loader.loadConfig(self, self.manifest.config)
+
+		return self._config
+
+	def openLayerBlob(self, d, uncompress = False):
+		assert(d in self.manifest.layers)
+
+		f = self.loader.openBlob(self, d, mode = "rb")
+		if uncompress:
+			comp = d._parsedMediaType.compression
+			if comp is None:
+				pass
+			elif comp == "gzip":
+				import gzip
+				f = gzip.GzipFile(mode = "rb", fileobj = f)
+			else:
+				raise ValueError("Compression mode \"%s\" currently not supported" % comp)
+
+		return f
+
+class ImageFactory:
+	def __init__(self, architecture = "amd64"):
+		self._architecture = architecture
+		self._cache = ".cache"
+
+	def getImageStorage(self, spec):
+		store = ImageFormatFactory.parseImageSpec(spec)
+
+		store.setArchitecture(self._architecture)
+		store.setCacheDir(self._cache)
+		return store
+
+	def load(self, spec):
+		loader = self.getImageStorage(spec)
+		return loader.load()
+
+class MediaType:
+	class VendorDocker:
+		name = 'docker'
+		separator = '.'
+
+		mimeTypeImageIndex = 'application/vnd.docker.distribution.manifest.list.v2+json'
+		mimeTypeManifest = 'application/vnd.docker.distribution.manifest.v2+json'
+		mimeTypeConfig = 'application/vnd.docker.container.image.v1+json'
+		mimeTypeLayer = 'application/vnd.docker.image.rootfs.diff.tar'
+		mimeTypeLayerExternal = 'application/vnd.docker.image.rootfs.foreign.diff.tar'
+
+	class VendorOCI:
+		name = 'oci'
+		separator = '+'
+
+		mimeTypeImageIndex = 'application/vnd.oci.image.index.v1+json'
+		mimeTypeManifest = 'application/vnd.oci.image.manifest.v1+json'
+		mimeTypeConfig = 'application/vnd.oci.image.config.v1+json'
+		mimeTypeLayer = 'application/vnd.oci.image.layer.v1.tar'
+		mimeTypeLayerExternal = 'application/vnd.oci.image.layer.nondistributable.v1.tar'
+
+	compressionAlgorithms = (
+		'gzip',
+		'zstd',
+	)
+
+	def __init__(self, mt):
+		self.baseMIMEType = mt
+		self.compression = None
+		self.vendor = None
+
+		if mt.startswith('application/vnd.oci.'):
+			# OCI media types end with +gzip
+			self.vendor = MediaType.VendorOCI
+		elif mt.startswith('application/vnd.docker.'):
+			# Docker media types end with .gzip
+			self.vendor = MediaType.VendorDocker
+
+		if self.vendor:
+			sepa = self.vendor.separator
+			for compression in self.compressionAlgorithms:
+				if mt.endswith(sepa + compression):
+					n = len(compression) + 1
+					self.baseMIMEType = mt[:-n]
+					self.compression = compression
+					break
+
+	def __repr__(self):
+		if not self.compression:
+			return self.baseMIMEType
+
+		return "%s%s%s" % (self.baseMIMEType, self.vendor.separator, self.compression)
+
+	@staticmethod
+	def mimeTypesFor(what):
+		result = []
+		for vendor in (MediaType.VendorDocker, MediaType.VendorOCI):
+			result.append(getattr(vendor, 'mimeType' + what))
+
+		return result
+
+	class Validator:
+		def __init__(self, compatibleTypes, missingMediaTypeOK = False):
+			self.compatibleTypes = compatibleTypes
+			self.missingMediaTypeOK = missingMediaTypeOK
+
+		def validateJSON(self, data):
+			mediaType = data.get('mediaType')
+			if not mediaType:
+				if self.missingMediaTypeOK:
+					return True
+
+				raise ValueError("JSON did not include mediaType; expected one of %s" % (
+					", ".join(self.compatibleTypes)))
+
+			if mediaType not in self.compatibleTypes:
+				raise ValueError("JSON provides unexpected mediaType \"%s\"; expected one of %s" % (
+					mediaType,
+					", ".join(self.compatibleTypes)))
+
+	@staticmethod
+	def indexValidator(missingMediaTypeOK = False):
+		return MediaType.Validator(MediaType.mimeTypesFor('ImageIndex'), missingMediaTypeOK)
+
+	@staticmethod
+	def manifestValidator(missingMediaTypeOK = False):
+		return MediaType.Validator(MediaType.mimeTypesFor('Manifest'), missingMediaTypeOK)
+
+	def isImageIndex(self):
+		if not self.vendor:
+			return False
+
+		return self.baseMIMEType == self.vendor.mimeTypeImageIndex
+
+	def isManifest(self):
+		if not self.vendor:
+			return False
+
+		return self.baseMIMEType == self.vendor.mimeTypeManifest
+
+	def isImageLayer(self):
+		if not self.vendor:
+			return False
+
+		return self.baseMIMEType == self.vendor.mimeTypeLayer
+
+	def isExternalReference(self):
+		return self.baseMIMEType == self.vendor.mimeTypeLayerExternal
+
+	def makeExternalReference(self):
+		assert(self.vendor)
+
+		if not self.isImageLayer():
+			raise ValueError("Cannot convert mime type \"%s\" to an external reference layer" % self.baseMIMEType)
+
+		self.baseMIMEType = self.vendor.mimeTypeLayerExternal
+
+	def changeVendor(self, vendor):
+		mimeTypeAttr = self._identifyMIMEType()
+
+		newType = getattr(vendor, mimeTypeAttr)
+		# print("vendor %s -> %s; mimeType %s -> %s" % (self.vendor.name, vendor.name, self.baseMIMEType, newType))
+		self.baseMIMEType = newType
+		self.vendor = vendor
+
+	def _identifyMIMEType(self):
+		for attr in dir(self.vendor):
+			mt = getattr(self.vendor, attr)
+			if mt == self.baseMIMEType:
+				return attr
+
+		return None
+
+class LayerMap(object):
+	class LayerInfo:
+		def __init__(self, generation, d):
+			self.generation = generation
+			self.descriptor = d
+
+	def __init__(self):
+		self._dict = {}
+
+	def isEmpty(self):
+		return len(self._dict) == 0
+
+	def get(self, digest):
+		return self._dict.get(digest)
+
+	def add(self, generation, d, reference):
+		digest = d.digest
+		l = self._dict.get(digest)
+		if l is not None:
+			assert(generation < l.generation)
+
+		l = self.LayerInfo(generation, d)
+		l.reference = reference
+		self._dict[digest] = l
+
+		return l
+
+	def getReference(self, d):
+		l = self.get(d.digest)
+		if l is None:
+			return None
+
+		if False:
+			if d.mediaType != l.descriptor.mediaType:
+				print("WARN: incompatible media types %s -> %s" % (d.mediaType, l.descriptor.mediaType))
+
+		ref = l.reference
+
+		# If the rest of the manifest uses eg OCI mime types, make sure our external references
+		# have the same vendor prefix.
+		vendor = d.vendor()
+		if not ref.sameVendor(vendor):
+			return ref.asVendor(vendor)
+
+		return ref
+
+def build_arg_parser():
+	import argparse
+
+	parser = argparse.ArgumentParser(description='Frob a container image.')
+	parser.add_argument('--output-type', default = 'dir',
+				help = 'blah')
+	parser.add_argument('--output-path', default = None,
+				help = 'blah')
+	parser.add_argument('image', metavar='IMAGE',
+			    help='the image to transform')
+
+	return parser
+
+parser = build_arg_parser()
+args = parser.parse_args()
+
+imageFactory = ImageFactory()
+
+print("== Loading %s ==" % args.image)
+img = imageFactory.load(args.image)
+
+#
+# We look at the image labels to detect the base image(s) using in building
+# this image.
+#
+# Currently, this is a very suse-ish process in that we look at labels
+# like
+#  org.opensuse.*.reference
+#  com.suse.*.reference
+#
+print()
+print("== Analyzing %s for SUSE base images ==" % img.spec())
+layerMap = LayerMap()
+for baseImgSpec in img.getPotentialBaseImages():
+	import urllib.error
+	try:
+		baseImg = imageFactory.load(baseImgSpec)
+	except ImageLoadError as e:
+		print("  %s: %s" % (e.image, e.reason))
+		continue
+
+	print("Inspecting image %s" % baseImgSpec)
+	generation = len(baseImg.manifest.layers)
+	for d in baseImg.manifest.layers:
+		print("Image %s layer %s (%s)" % (baseImgSpec, d.mediaType, d.digest))
+		mediaType = MediaType(d.mediaType)
+		if not d.isImageLayer():
+			print("Image %s has layer of unknown type %s" % (baseImgSpec, d.mediaType))
+			continue
+
+		l = layerMap.get(d.digest)
+		if l and l.generation <= generation:
+			continue
+
+		refDest = d.asExternalReference(baseImg)
+		print("  Making external ref with mediaType %s" % refDest._parsedMediaType)
+
+		layerMap.add(generation, d, refDest)
+
+		if d.isCompressed():
+			print("  Layer is compressed, hashing uncompressed data")
+			try:
+				newDesc = d.asUncompressed(baseImg)
+			except ImageLoadError as e:
+				print("  %s: %s" % (e.image, e.reason))
+				continue
+
+			print("    %s (%s)" % (newDesc.mediaType, newDesc.digest))
+			layerMap.add(generation, newDesc, refDest)
+
+if layerMap.isEmpty():
+	print("== Did not detect any SUSE base images, nothing to be done ==")
+	exit(0)
+
+print()
+print("== Inspecting image to replace SUSE layers with external references ==")
+changed = False
+for num in range(len(img.manifest.layers)):
+	d = img.manifest.layers[num]
+
+	print("Inspecting layer %d: %s (%s)" % (num, d.mediaType, d.digest))
+
+	mediaType = d._parsedMediaType
+
+	if not mediaType.isImageLayer():
+		print("Image layer of unknown type")
+		break
+
+	reference = layerMap.getReference(d)
+
+	if reference is None and d.isCompressed():
+		print("  Layer is compressed, trying uncompressed match")
+		try:
+			newDesc = d.asUncompressed(img)
+			reference = layerMap.getReference(newDesc)
+		except ImageLoadError as e:
+			print("  %s: %s" % (e.image, e.reason))
+
+	if reference is None:
+		print("Layer does not match any layer of any of the base images")
+		break
+
+	print("Detected SUSE layer, converting to external reference")
+	print("  %s (%s) -> %s (%s)" % (d.digest, d.mediaType, reference.digest, reference.mediaType))
+
+	img.manifest.layers[num] = reference
+	changed = True
+
+if not changed:
+	print("== Nothing changed, did not write output image ==")
+	exit(1)
+
+if args.output_path is not None:
+	saver = imageFactory.getImageStorage(args.output_path)
+else:
+	saverClass = ImageFormatFactory.getLoaderClass(args.output_type)
+	saver = saverClass(img.name, img.version)
+
+print()
+print("== Saving modified image to %s ==" % saver.spec())
+saver.save(img)
+exit(0)
