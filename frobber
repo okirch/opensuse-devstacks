@@ -14,15 +14,37 @@
 #
 # ./frobber docker:registry.opensuse.org/opensuse/nginx:latest
 #
+#
+#
+# Note: right now, this does not work with docker hub; apparently because
+# they check the URLs of nondistributable image layers against a list of
+# "acceptable" URLs.
+# The docker registry seems to return a 500 Internal Server Error in this case.
+#
 
 import sys
 import json
 import os.path
 import copy
 import io
+import re
 import tempfile
+import base64
+import urllib.parse
+import urllib.request
+from urllib.error import HTTPError
 
 class ImageLoadError(Exception):
+	def __init__(self, image, reason):
+		self.image = image
+		self.reason = reason
+
+class ImageSaveError(Exception):
+	def __init__(self, image, reason):
+		self.image = image
+		self.reason = reason
+
+class LoginError(Exception):
 	def __init__(self, image, reason):
 		self.image = image
 		self.reason = reason
@@ -118,7 +140,7 @@ class OCIDescriptor(SimpleNamespace):
 
 		# Change the mediaType to an external reference and set the URLs
 		ret.makeExternalReference()
-		ret.addURL(img.loader.blobURL(img, self))
+		ret.addURL(img.loader.blobURL(img, self).geturl())
 
 		return ret
 
@@ -174,17 +196,191 @@ class JSONObjectEncoder(json.JSONEncoder):
 
 		return d
 
+class KeystoreBase(object):
+	class Credentials:
+		def __init__(self, user, password, url = None):
+			self.user = user
+			self.password = password
+			self.url = url
+
+	def get(self, host):
+		return None
+
+class Keystore(urllib.request.HTTPPasswordMgr):
+	def __init__(self):
+		self._stores = []
+		self._stores.append(DockerPlaintextKeystore())
+
+	def find_user_password(realm, authuri):
+		print("@@@ find_user_password(%s, %s)" % (realm, authuri))
+
+	def get(self, host):
+		for s in self._stores:
+			creds = s.get(host)
+			if creds:
+				return creds
+		return None
+
+class AuthenticationRequired(Exception):
+	def __init__(self, auth_req):
+		self.auth_req = auth_req
+
+# When trying to push to docker registry w/o authentication, it will return a 401 error
+# with the following Www-Authenticate header:
+# Www-Authenticate: Bearer realm="https://auth.docker.io/token",service="registry.docker.io",scope="repository:okir/test:pull"
+#
+class BearerAuthHandler(urllib.request.BaseHandler):
+	class AuthRequest:
+		def __init__(self, type):
+			self.type = type
+			self.params = dict()
+
+		@property
+		def realm(self):
+			return self.params.get('realm')
+
+		@property
+		def scope(self):
+			return self.params.get('scope')
+
+		@scope.setter
+		def scope(self, value):
+			self.params['scope'] = value
+
+		@property
+		def service(self):
+			return self.params.get('service')
+
+		@property
+		def queryString(self):
+			return "&".join(['%s=%s' % (k, v) for k, v in self.params.items()])
+
+		def __str__(self):
+			return "%s %s" % (self.type,
+				",".join(['%s=%s' % (k, v) for k, v in self.params.items()]))
+
+	installed = False
+
+	@staticmethod
+	def install():
+		if not BearerAuthHandler.installed or True:
+			print("    Installing urllib handler for Bearer authentication")
+			authhandler = BearerAuthHandler()
+			opener = urllib.request.build_opener(authhandler)
+			urllib.request.install_opener(opener)
+			BearerAuthHandler.installed = True
+
+	def http_error_401(self, req, fp, code, msg, headers):
+		print("  Received HTTP error %d (%s)" % (code, msg))
+		for k, v in headers.items():
+			print("    %s: %s" % (k, v))
+		if headers.get('content-type') == 'application/json':
+			try:
+				data = json.load(fp)
+			except:
+				print("  Unable to parse JSON body")
+				data = None
+
+			if data:
+				print("  JSON body")
+				for k, v in data.items():
+					print("    %s: %s" % (k, v))
+
+		auth_header = headers.get('www-authenticate')
+		if not auth_header:
+			raise ValueError("%s: missing Www-Authenticate in 401 error" % self.__class__.__name__)
+
+		auth_req = self.parse_auth_header(auth_header)
+		if not auth_req:
+			raise ValueError("%s: cannot parse Www-Authenticate header: %s" % (self.__class__.__name__, auth_header))
+
+		# print("Parsed auth req %s" % auth_req)
+
+		if auth_req.type != 'Bearer':
+			print("  Ignoring auth header with type \"%s\"" % auth_req.type)
+			return
+
+		# An error indicates we've been presenting a Bearer token, but it was
+		# not sufficient or wrong.
+		# If it was not sufficient, we should at least retry...
+		error = auth_req.params.get('error')
+		if error and error != 'insufficient_scope':
+			raise HTTPError(req.full_url, code, msg, headers, None)
+
+		raise AuthenticationRequired(auth_req)
+
+	def parse_auth_header(self, auth_header):
+		# print("Parsing auth header \"%s\"" % auth_header)
+		m = re.match("\s*(\S+)\s+(.*)", auth_header)
+		if not m:
+			return None
+
+		auth_req = self.AuthRequest(m.group(1))
+		param_string = m.group(2)
+
+		while param_string:
+			# print("param_string=\"%s\"" % param_string)
+			m = re.match("([^=]+)=\"([^\"]*)\"(.*)", param_string)
+			if not m:
+				m = re.match("([^=]+)=([^,]*)(.*)", param_string)
+
+			if not m:
+				return None
+
+			(key, value, rest) = m.groups()
+
+			auth_req.params[key] = value
+			# print("      %s=%s" % (key, value))
+
+			param_string = rest.lstrip(",")
+
+		return auth_req
+
+	# def http_error_auth_reqed(authreq, host, req, headers):
+	def http_error_auth_reqed(**args):
+		print("http_error_auth_reqed(%s)" % args)
+		foop
+
+class DockerPlaintextKeystore(KeystoreBase):
+	def __init__(self):
+		import os
+
+		path = "%s/.docker/config.json" % os.getenv("HOME")
+		if not os.path.isfile(path):
+			self.data = None
+
+		with open(path) as f:
+			self.data = json.load(f)
+
+	def get(self, host):
+		d = self.data
+		for key in ('auths', host, 'auth'):
+			d = d.get(key)
+			if d is None:
+				return None
+
+		auth = base64.b64decode(d).decode()
+
+		if ':' not in auth:
+			return None
+
+		(user, password) = auth.split(':', 1)
+		return self.Credentials(user, password)
 
 class ImageFormat(object):
 	def __init__(self):
 		self._cache = None
 		self.architecture = None
+		self._keystore = None
 
 	def setArchitecture(self, arch):
 		self.architecture = arch
 
 	def setCacheDir(self, path):
 		self._cache = ImageBlobCache(path)
+
+	def setKeystore(self, keystore):
+		self._keystore = keystore
 
 	def spec(self):
 		raise NotImplementedError("%s: method spec() not implemented" % self.__class__.__name__)
@@ -246,14 +442,109 @@ class ImageFormat(object):
 	def storeJSON(self, f, obj):
 		json.dump(obj, cls = JSONObjectEncoder, fp = f, indent = "\t")
 
-	def blobPath(self, d):
-		return None
-
 	def blobURL(self, img, d):
 		raise NotImplementedError("%s: method blobURL() not implemented" % self.__class__.__name__)
 
-	def tryToHardlinkBlob(self, srcPath, d):
+	def blobFilesystemPath(self, d):
+		return None
+
+	def tryToHardlinkBlob(self, loader, d):
 		return False
+
+	def blobExists(self, img, d):
+		return False
+
+	def copyBlob(self, img, d):
+		if self.blobExists(img, d):
+			print("Blob %s already exists, not copying" % d.digest)
+			return
+
+		print("Copying blob %s (size %s)" % (d.digest, d.size))
+
+		assert(img.loader)
+		loader = img.loader
+
+		if self.tryToHardlinkBlob(loader, d):
+			return
+
+		with loader.openBlob(img, d) as f:
+			self.saveBlob(img, d, f)
+
+	# Authentication for registries
+	# The default is not to log in
+	def login(self):
+		pass
+
+	def getCredentials(self, realm):
+		if not realm:
+			return
+
+		registry = RegistryInfo.forHost(realm)
+		if not registry:
+			print("No registry info for realm %s, not logging in" % realm)
+			return
+
+		if not self._keystore:
+			print("No keystore, not logging in")
+			return
+
+		creds = None
+		if registry.cred_url:
+			creds = self._keystore.get(registry.cred_url)
+		if creds is None:
+			creds = self._keystore.get(registry.auth_url)
+
+		if creds is None:
+			print("No credentials for %s, not logging in")
+			return
+
+		creds.url = registry.auth_url
+		return creds
+
+class RegistryInfo(object):
+	def __init__(self, realm, auth_url = None, cred_url = None):
+		self.realm = realm
+		self.auth_url = auth_url
+		self.cred_url = cred_url
+
+	@staticmethod
+	def forHost(realm):
+		if realm == 'docker.io':
+			return RegistryInfo(realm,
+				auth_url = "https://hub.docker.com/v2/users/login",
+				cred_url = "https://index.docker.io/v1/")
+
+		if realm == 'https://auth.docker.io/token':
+			return RegistryInfo(realm,
+				auth_url = "https://auth.docker.io/token",
+				cred_url = "https://index.docker.io/v1/")
+
+		return None
+
+class HTTPContent(object):
+	def __init__(self, contentType, content, contentLength = -1):
+		self.contentType = contentType
+
+		if contentType == "application/json":
+			print("  Sending JSON data:")
+			print(json.dumps(content, cls = JSONObjectEncoder, indent = "\t"))
+			data = json.dumps(content, cls = JSONObjectEncoder).encode('utf-8')
+			# print("Content %s" % data)
+		elif contentType == "application/octet-stream":
+			data = content.read()
+		elif contentType.startswith('application/vnd.'):
+			data = content
+			# print("  content=%s" % data)
+		else:
+			raise ValueError("Cannot handle HTTP data with content type %s" % contentType)
+
+		if contentLength < 0:
+			contentLength = len(data)
+
+		assert(contentLength >= 0)
+
+		self.contentLength = contentLength
+		self.content = data
 
 class ImageFormatDockerRegistry(ImageFormat):
 	# Expect an image spec including the registry name
@@ -261,20 +552,51 @@ class ImageFormatDockerRegistry(ImageFormat):
 		self.path = path
 		self.name = None
 		self.version = None
+		self.creds = None
 
 		self.guessURL(path)
+
+		if ':' in self.url.path:
+			(self.name, self.version) = self.url.path.split(':', 1)
+		else:
+			self.name = self.url.path
+		self.name = self.name.strip("/")
+
 		return
 
 	def spec(self):
 		return self.url._replace(scheme = "docker").geturl()
 
-	def load(self):
-		if ':' in self.url.path:
-			(name, version) = self.url.path.split(':', 1)
-		else:
-			(name, version) = self.url.path, 'latest'
+	def login(self):
+		creds = self.getCredentials(self.url.netloc)
+		if not creds:
+			return
 
-		name = name.strip('/')
+		data = {
+			'username' : creds.user,
+			'password' : creds.password
+		}
+
+		url = self.parseValidateURL(creds.url)
+		if not url:
+			raise LoginError(self.spec(), "Invalid login url \"%s\"" % creds.url)
+
+		print("Logging into %s" % creds.url)
+
+		resp = self.httpPost(url, "application/json", data, mode = "r")
+		with resp as f:
+			auth_reply = self.loadJSON(f)
+			if not auth_reply.get('token'):
+				raise LoginError(self.spec(), "Unexpected response from %s" % creds.url)
+
+			creds.auth_token = auth_reply['token']
+
+		print("  Successfully authenticated")
+		self.creds = creds
+
+	def load(self):
+		name = self.name.strip('/')
+		version = self.version or "latest"
 
 		with self.openURL("v2/%s/manifests/%s" % (name, version)) as f:
 			mfList = self.parseImageIndex(f)
@@ -291,11 +613,33 @@ class ImageFormatDockerRegistry(ImageFormat):
 
 		return img
 
+	def save(self, img):
+		self.copyBlob(img, img.manifest.config)
+		print("Wrote config")
+
+		if not self.blobExists(img, img.manifest.config):
+			raise ImageSaveError(self.spec(), "Uploaded config, but it's not available?!")
+
+		for d in img.manifest.layers:
+			print("  saving layer %s" % d.mediaType)
+			if d.isExternalReference():
+				print("Skipping blob %s (external reference)" % d.digest)
+				print("  urls=%s (%s)" % (type(d.urls), d.urls))
+			else:
+				self.copyBlob(img, d)
+
+		self.saveManifest(img, img.manifest)
+		print("Wrote manifest")
+
 	def openURL(self, partialURL, mode = "r"):
 		return self.download(partialURL, mode = mode)
 
 	def openManifest(self, img, d):
 		return self.openURL("v2/%s/manifests/%s" % (img.name, d.digest))
+
+	def blobExists(self, img, d):
+		# HEAD /v2/<name>/blobs/<digest>
+		return self.httpHead("/v2/%s/blobs/%s" % (self.name, d.digest))
 
 	def openBlob(self, img, d, mode = "rb"):
 		if mode.startswith('w'):
@@ -307,18 +651,114 @@ class ImageFormatDockerRegistry(ImageFormat):
 
 		return self.download("v2/%s/blobs/%s" % (img.name, d.digest), mode, cache = cacheHandle)
 
+	def saveBlob(self, img, d, src):
+		self.upload("v2/%s/blobs/uploads/" % self.name.strip("/"), src, d)
+		return
+
+	def saveManifest(self, img, src):
+		name = self.name.strip("/")
+		reference = self.version or "latest"
+
+		src = copy.copy(src)
+		src.name = name
+		src.tag = reference
+		src.architecture = self.architecture or "amd64"
+
+		self.uploadManifest("v2/%s/manifests/%s" % (name, reference), src)
+
+	def uploadManifest(self, partialURL, src):
+		url = self.makeURL(partialURL)
+
+		# Content is json, but we change the content-type to the
+		# media type of the manifest
+		content = HTTPContent('application/json', src)
+		content.contentType = src.mediaType
+
+		resp = self.httpPost(url, method = 'PUT', content = content)
+
+		# This returns something like:
+		# 201 Created
+		# Docker-Content-Digest: sha256:<....>
+		# Docker-Distribution-Api-Version: registry/2.0
+		# Location: https://registry-1.docker.io/v2/<name>/manifests/<digest>
+		# Content-Length: 0
+
+		assert(resp.code == 201)
+
+	def doLoginDocker(self, auth_request, creds):
+		if False:
+			scope = auth_request.scope
+			if scope.endswith(":pull"):
+				auth_request.scope = scope + ",push"
+
+		auth_request.params['account'] = creds.user
+		realm = auth_request.params.pop('realm')
+
+		req = urllib.request.Request(realm + "?" + auth_request.queryString, method = "GET")
+
+		print("  %s %s" % (req.method, req.full_url))
+
+		# Authorization: Bearer foobZEGO==
+		upass = "%s:%s" % (creds.user, creds.password)
+		upass = base64.b64encode(upass.encode("utf-8"))
+		hdr = "Basic %s" % (upass.decode("utf-8"))
+		req.add_header("Authorization", hdr)
+
+		resp = urllib.request.urlopen(req)
+		with resp as f:
+			auth_reply = self.loadJSON(f)
+			if not auth_reply.get('token'):
+				raise LoginError(self.spec(), "Unexpected response from %s" % creds.url)
+
+			creds.authorization_header = "%s %s" % (auth_request.type, auth_reply['token'])
+			creds.auth_type = auth_request.type
+			creds.auth_token = auth_reply['token']
+			creds.scope = auth_request.scope
+
+			creds.expires_in = auth_reply.get('expires_in') or '60'
+			creds.issued_at = auth_reply.get('issued_at') or 'just now'
+
+			self.displayJWT(creds.auth_token)
+
+		print("  Successfully authenticated (issued %s, expires in %s seconds)" % (creds.issued_at, creds.expires_in))
+		self.creds = creds
+
+	def displayJWT(self, token):
+		try:
+			import jwt
+
+			payload = jwt.decode(token, verify = False)
+		except:
+			return True
+
+		access = payload.get('access')
+		if not access:
+			print("## WARNING: The token returned by the server does not grant any access ##")
+			print("  Token payload:")
+			for k, v in payload.items():
+				print("    %-8s %s" % (k, v))
+
+			return False
+
+		return True
+
 	def blobURL(self, img, d):
 		return self.makeURL("v2/%s/blobs/%s" % (img.name, d.digest))
 
 	def makeURL(self, partialURL):
-		return self.url._replace(path = partialURL).geturl()
+		url = self.url._replace(path = partialURL)
+
+		if url.netloc == 'docker.io':
+			url = url._replace(netloc = 'registry-1.docker.io')
+
+		return url
 
 	def download(self, partialURL, mode = "rb", cache = None):
 		import urllib.request
 		from urllib.error import HTTPError
 		import io
 
-		url = self.url._replace(path = partialURL).geturl()
+		url = self.makeURL(partialURL).geturl()
 
 		if cache:
 			f = cache.open(mode)
@@ -331,10 +771,10 @@ class ImageFormatDockerRegistry(ImageFormat):
 		if self.url.netloc == 'registry.suse.com':
 			print("  %s requires authentication; don't be too surprised if this download fails" % self.url.netloc)
 
-		req = urllib.request.Request(url)
+		req = urllib.request.Request(url, method = "GET")
 
 		try:
-			resp = urllib.request.urlopen(req)
+			resp = self.urlopen(req)
 		except HTTPError as e:
 			raise ImageLoadError(self.path, str(e))
 
@@ -352,6 +792,164 @@ class ImageFormatDockerRegistry(ImageFormat):
 
 		return resp
 
+	def upload(self, partialURL, src, d):
+		url = self.makeURL(partialURL)
+
+		# POST /v2/<name>/blobs/uploads/
+		print("Uploading to %s" % url.geturl())
+		auth_request = None
+		fail_reason = None
+
+		try:
+			resp = self.httpPost(url)
+		except HTTPError as e:
+			raise ImageSaveError(self.path, str(e))
+
+		# The server should give us a 202 response with these headers:
+		#   Location: /v2/<name>/blobs/uploads/<uuid>
+		#   Range: bytes=0-<offset>
+		#   Content-Length: 0
+		#   Docker-Upload-UUID: <uuid>
+
+		location = resp.headers.get('location')
+		if not location:
+			raise ImageSaveError(self.path, "Missing Location header in server response")
+
+		url = urllib.parse.urlparse(location)
+
+		digestQ = "digest=%s" % d.digest
+		if url.query:
+			url = url._replace(query = url.query + "&" + digestQ)
+		else:
+			url = url._replace(query = digestQ)
+
+		resp = self.httpPost(url, method = "PUT",
+				content = HTTPContent('application/octet-stream', src, contentLength = d.size))
+
+		if resp.code != 201:
+			raise ImageSaveError(self.path, "Unexpected HTTP response %s to blob upload" % resp.code)
+
+		digest = resp.headers.get('Docker-Content-Digest')
+		if digest != d.digest:
+			raise ImageSaveError(self.path, "Registry returns a different digest after upload (%s -> %s)" % (
+				d.digest, digest))
+
+		return
+
+	def httpPost(self, url, method = "POST", content = None, mode = "rb"):
+		import urllib.request
+		from urllib.error import HTTPError
+		import io
+
+		if content:
+			req = urllib.request.Request(url.geturl(), method = method, data = content.content)
+		else:
+			req = urllib.request.Request(url.geturl(), method = method)
+
+		resp = self.urlopen(req, content)
+
+		# Do not catch HTTP Error - let the caller catch that
+
+		if int(resp.status / 100) != 2:
+			raise ImageSaveError(self.path, str(e))
+
+		if 'b' not in mode:
+			return io.StringIO(resp.read().decode())
+
+		return resp
+
+	def httpHead(self, partialURL):
+		import urllib.request
+		from urllib.error import HTTPError
+
+		url = self.makeURL(partialURL).geturl()
+
+		print("Checking %s" % url)
+
+		req = urllib.request.Request(url, method = "HEAD")
+
+		try:
+			resp = self.urlopen(req)
+		except HTTPError as e:
+			print("HEAD returned failure: %s" % str(e))
+			return False
+
+		print(resp)
+		if resp.status != 200:
+			return False
+
+		return True
+
+	def urlopen(self, req, content = None):
+		print("  %s %s" % (req.method, req.full_url))
+
+		try:
+			resp = self._urlopen(req, content)
+		except HTTPError as e:
+			self.showResponse(e, showData = True)
+			raise e
+
+		self.showResponse(resp)
+		return resp
+	
+	def showResponse(self, resp, showData = False):
+		# return
+
+		print("  Response %s %s" % (resp.status, resp.reason))
+		for k, v in resp.headers.items():
+			print("    %s: %s" % (k, v))
+
+		if showData and False:
+			if resp.headers['content-type'] == 'application/json':
+				print(resp.file)
+				print(resp.file.read())
+				data = json.load(resp.file)
+				print("  JSON body")
+				for k, v in data.items():
+					print("    %s: %s" % (k, v))
+
+	def _urlopen(self, req, content):
+		BearerAuthHandler.install()
+
+		if self.creds:
+			print("    Adding header: Authorization: %.80s.." % self.creds.authorization_header)
+			req.add_header("Authorization", self.creds.authorization_header)
+
+		if content:
+			print("    Adding header: Content-Type: %s" % content.contentType)
+			req.add_header("Content-Type", content.contentType)
+
+			if content.contentLength >= 0:
+				print("    Adding header: Content-Length: %s" % content.contentLength)
+				req.add_header("Content-Length", content.contentLength)
+
+		try:
+			return urllib.request.urlopen(req)
+		except AuthenticationRequired as ar:
+			auth_request = ar.auth_req
+
+		creds = self.getCredentials(auth_request.realm)
+		if creds is None:
+			# FIXME: -> RegistryError
+			raise ImageSaveError(self.path, "Authentication requested (%s with realm %s), but no credentials found" % (
+					auth_request.type, auth_request.realm))
+
+		print("  Authentication requested: %s" % (auth_request))
+		if auth_request.realm.startswith("https://auth.docker.io"):
+			self.doLoginDocker(auth_request, creds)
+		else:
+			# FIXME: -> RegistryError
+			raise ImageSaveError(self.path, "Don't know how to authenticate (request=%s)" % auth_req)
+
+		print("Retrying HTTP request")
+		print("  %s %s" % (req.method, req.full_url))
+
+		if self.creds:
+			print("    Adding header: Authorization: %.80s.." % self.creds.authorization_header)
+			req.add_header("Authorization", self.creds.authorization_header)
+
+		return urllib.request.urlopen(req)
+
 	def guessURL(self, path):
 		if self.tryThisURL(path):
 			return
@@ -364,7 +962,7 @@ class ImageFormatDockerRegistry(ImageFormat):
 
 		raise ValueError("Cannot parse registry image name \"%s\"" % path)
 
-	def tryThisURL(self, path):
+	def parseValidateURL(self, path):
 		from urllib.parse import urlparse
 		import socket
 
@@ -372,12 +970,19 @@ class ImageFormatDockerRegistry(ImageFormat):
 
 		url = urlparse(path, scheme = 'https')
 		if not url.netloc or not url.path:
-			return False
+			return None
 
 		try:
 			socket.gethostbyname(url.netloc)
 		except:
 			# Not a valid hostname
+			return None
+
+		return url
+
+	def tryThisURL(self, path):
+		url = self.parseValidateURL(path)
+		if url is None:
 			return False
 
 		# print("url = %s" % (url,))
@@ -461,29 +1066,23 @@ class ImageFormatDir(ImageFormat):
 
 		self.transportVersion = version
 
-	def copyBlob(self, img, d):
-		print("Copying blob %s" % d.digest)
+	def blobExists(self, img, d):
+		dstPath = self.blobFilesystemPath(d)
+		return os.path.exists(dstPath)
 
-		assert(img.loader)
-		loader = img.loader
-
-		path = loader.blobPath(d)
-		if not self.tryToHardlinkBlob(path, d):
-			f = loader.openBlob(img, d)
-			self.saveBlob(img, d, f)
-
-	def blobPath(self, d):
+	def blobFilesystemPath(self, d):
 		name = self.digestStripPrefix(d.digest)
 
 		filename = os.path.join(self.path, name)
-		# print("blobPath(%s) = %s" % (d.digest, filename))
+		# print("blobFilesystemPath(%s) = %s" % (d.digest, filename))
 		return filename
 
-	def tryToHardlinkBlob(self, srcPath, d):
+	def tryToHardlinkBlob(self, loader, d):
+		srcPath = loader.blobFilesystemPath(d)
 		if srcPath is None or not os.path.isfile(srcPath):
 			return False
 
-		dstPath = self.blobPath(d)
+		dstPath = self.blobFilesystemPath(d)
 
 		if os.path.exists(dstPath):
 			os.remove(dstPath)
@@ -498,7 +1097,7 @@ class ImageFormatDir(ImageFormat):
 		return False
 
 	def openBlob(self, img, d, mode = "rb"):
-		path = self.blobPath(d)
+		path = self.blobFilesystemPath(d)
 		return open(path, mode)
 
 	def saveBlob(self, img, d, src):
@@ -645,16 +1244,7 @@ class ImageFormatOCIArchive(ImageFormat):
 
 		self.ociLayout = data
 
-	def copyBlob(self, img, d):
-		print("Copying blob %s" % d.digest)
-
-		assert(img.loader)
-		loader = img.loader
-
-		with loader.openBlob(img, d) as f:
-			self.saveBlob(img, d, f)
-
-	def blobPath(self, d):
+	def blobMemberPath(self, d):
 		name = d.digest
 		if ':' in name:
 			name = name.replace(':', '/')
@@ -662,7 +1252,7 @@ class ImageFormatOCIArchive(ImageFormat):
 		return "blobs/" + name
 
 	def openBlob(self, img, d, mode = "rb"):
-		path = self.blobPath(d)
+		path = self.blobMemberPath(d)
 		return self.open(path, mode)
 
 	def saveBlob(self, img, d, src):
@@ -806,12 +1396,17 @@ class ImageFactory:
 	def __init__(self, architecture = "amd64"):
 		self._architecture = architecture
 		self._cache = ".cache"
+		self._keystore = None
+
+	def setKeystore(self, keystore):
+		self._keystore = keystore
 
 	def getImageStorage(self, spec):
 		store = ImageFormatFactory.parseImageSpec(spec)
 
 		store.setArchitecture(self._architecture)
 		store.setCacheDir(self._cache)
+		store.setKeystore(self._keystore)
 		return store
 
 	def load(self, spec):
@@ -889,6 +1484,10 @@ class MediaType:
 			if not mediaType:
 				if self.missingMediaTypeOK:
 					return True
+
+				print("Problem with JSON received from server")
+				data = json.dumps(data, cls = JSONObjectEncoder, indent = "\t")
+				print(data)
 
 				raise ValueError("JSON did not include mediaType; expected one of %s" % (
 					", ".join(self.compatibleTypes)))
@@ -1014,6 +1613,7 @@ parser = build_arg_parser()
 args = parser.parse_args()
 
 imageFactory = ImageFactory()
+imageFactory.setKeystore(Keystore())
 
 print("== Loading %s ==" % args.image)
 img = imageFactory.load(args.image)
