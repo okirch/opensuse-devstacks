@@ -38,10 +38,30 @@ class LogDevice:
 	def __init__(self):
 		self.level = 0
 		self._facLevel = 0
+		self._indent = 0
+
+	def _setindent(self, indent):
+		self._indent = indent
+
+	def _adjustIndent(self, n):
+		self._indent += n
+
+	def incrementIndent(self, n = 2):
+		s = Scope(lambda: self._adjustIndent(-n))
+		self._adjustIndent(n)
+		return s
+
+	def _log(self, msg):
+		print(" " * self._indent + msg)
 
 	def log(self, level, msg):
 		if level <= self.level:
-			print(msg)
+			self._log(msg)
+
+	def write(self, level, body):
+		if level <= self.level:
+			for msg in body.split("\n"):
+				self._log(msg)
 
 	def nextFacility(self):
 		l = self._facLevel
@@ -59,6 +79,13 @@ class LogDevice:
 	def isEnabled(self, level):
 		return level <= self.level
 
+class Scope:
+	def __init__(self, endfn):
+		self.endfn = endfn
+
+	def __del__(self):
+		self.endfn()
+
 class LogFacility:
 	def __init__(self, logDevice):
 		self.device = logDevice
@@ -74,7 +101,7 @@ class LogFacility:
 	def enabled(self):
 		return self.device.isEnabled(self.level)
 
-	def __call__(self, msg):
+	def __call__(self, msg = ""):
 		self.device.log(self.level, msg)
 
 class ImageLoadError(Exception):
@@ -271,9 +298,10 @@ class HTTP:
 		if not debug_extra.enabled:
 			return
 
-		logfn("  HTTP response %d (%s)" % (code, msg))
+		s = logger.incrementIndent()
+		logfn("HTTP response %d (%s)" % (code, msg))
 		for k, v in headers.items():
-			logfn("    %s: %s" % (k, v))
+			logfn("  %s: %s" % (k, v))
 
 		HTTP.logBody(fp, headers, logfn)
 
@@ -282,20 +310,20 @@ class HTTP:
 		if not debug_extra.enabled:
 			return
 
-		logfn("  Received HTTP error %d (%s)" % (code, msg))
+		logfn("Received HTTP error %d (%s)" % (code, msg))
 		for k, v in headers.items():
-			logfn("    %s: %s" % (k, v))
+			logfn("  %s: %s" % (k, v))
 
 		if headers.get('content-type') == 'application/json':
 			try:
 				data = json.load(fp)
 			except:
-				logfn("  Unable to parse JSON body")
+				logfn("Unable to parse JSON body")
 				return
 
-			logfn("  JSON body")
+			logfn("JSON body")
 			for k, v in data.items():
-				logfn("    %s: %s" % (k, v))
+				logfn("  %s: %s" % (k, v))
 
 	def logBody(fp, headers, logfn):
 		try:
@@ -364,7 +392,7 @@ class BearerAuthHandler(urllib.request.BaseHandler):
 			BearerAuthHandler.installed = True
 
 	def http_error_401(self, req, fp, code, msg, headers):
-		HTTP.logError(req, fp, code, msg, headers, logfin = debug_extra)
+		HTTP.logError(req, fp, code, msg, headers, logfn = debug_extra)
 
 		auth_header = headers.get('www-authenticate')
 		if not auth_header:
@@ -480,13 +508,15 @@ class ImageFormat(object):
 		self.storeJSON(f, mfl)
 
 	def pickManifestFromIndex(self, mfList):
+		s = logger.incrementIndent()
+
 		# Find the manifest matching the desired architecture
 		desc = mfList.find(architecture = self.architecture or "amd64")
 		if not desc or not desc.isManifest:
-			print("  Index does not contain a compatible manifest")
+			info("Index does not contain a compatible manifest")
 			return None
 
-		print("  Using manifest for %s: %s" % (desc.platformString(), desc.digest))
+		info("Using manifest for %s: %s" % (desc.platformString(), desc.digest))
 		return desc
 
 	def parseManifest(self, f, missingMediaTypeOK = False):
@@ -521,6 +551,22 @@ class ImageFormat(object):
 
 		return data
 
+	def saveImageBlobs(self, img):
+		info("Writing config")
+		self.copyBlob(img, img.manifest.config)
+
+		if not self.blobExists(img, img.manifest.config):
+			raise ImageSaveError(self.spec(), "Uploaded config, but it's not available?!")
+
+		info("Writing image layers")
+		for d in img.manifest.layers:
+			s = logger.incrementIndent()
+			info("Saving layer %s (%s)" % (d.digest, d.mediaType))
+			if d.isExternalReference():
+				info("  Skipping external reference; urls=%s" % (d.urls))
+			else:
+				self.copyBlob(img, d)
+
 	def storeJSON(self, f, obj):
 		json.dump(obj, cls = JSONObjectEncoder, fp = f, indent = "\t")
 
@@ -538,10 +584,10 @@ class ImageFormat(object):
 
 	def copyBlob(self, img, d):
 		if self.blobExists(img, d):
-			print("Blob %s already exists, not copying" % d.digest)
+			verbose("  Blob %s already exists, not copying" % d.digest)
 			return
 
-		print("Copying blob %s (size %s)" % (d.digest, d.size))
+		info("Copying blob %s (size %s)" % (d.digest, d.size))
 
 		assert(img.loader)
 		loader = img.loader
@@ -698,22 +744,10 @@ class ImageFormatDockerRegistry(ImageFormat):
 		return img
 
 	def save(self, img):
-		self.copyBlob(img, img.manifest.config)
-		print("Wrote config")
+		self.saveImageBlobs(img)
 
-		if not self.blobExists(img, img.manifest.config):
-			raise ImageSaveError(self.spec(), "Uploaded config, but it's not available?!")
-
-		for d in img.manifest.layers:
-			print("  saving layer %s" % d.mediaType)
-			if d.isExternalReference():
-				print("Skipping blob %s (external reference)" % d.digest)
-				print("  urls=%s (%s)" % (type(d.urls), d.urls))
-			else:
-				self.copyBlob(img, d)
-
+		info("Writing manifest")
 		self.saveManifest(img, img.manifest)
-		print("Wrote manifest")
 
 	def openURL(self, partialURL, mode = "r"):
 		return self.download(partialURL, mode = mode)
@@ -850,10 +884,10 @@ class ImageFormatDockerRegistry(ImageFormat):
 				debug("  Using cached data for %s" % url)
 				return f
 
-		print("Downloading %s" % url)
+		info("Downloading %s" % url)
 
 		if self.url.netloc == 'registry.suse.com':
-			print("  %s requires authentication; don't be too surprised if this download fails" % self.url.netloc)
+			info("  %s requires authentication; don't be too surprised if this download fails" % self.url.netloc)
 
 		req = urllib.request.Request(url, method = "GET")
 
@@ -964,7 +998,9 @@ class ImageFormatDockerRegistry(ImageFormat):
 		return True
 
 	def urlopen(self, req, content = None):
-		debug("  %s %s" % (req.method, req.full_url))
+		s = logger.incrementIndent()
+
+		debug("%s %s" % (req.method, req.full_url))
 
 		try:
 			resp = self._urlopen(req, content)
@@ -983,15 +1019,15 @@ class ImageFormatDockerRegistry(ImageFormat):
 		BearerAuthHandler.install()
 
 		if self.creds:
-			debug_extra("    Adding header: Authorization: %.80s.." % self.creds.authorization_header)
+			debug_extra("  Adding header: Authorization: %.80s.." % self.creds.authorization_header)
 			req.add_header("Authorization", self.creds.authorization_header)
 
 		if content:
-			debug_extra("    Adding header: Content-Type: %s" % content.contentType)
+			debug_extra("  Adding header: Content-Type: %s" % content.contentType)
 			req.add_header("Content-Type", content.contentType)
 
 			if content.contentLength >= 0:
-				debug_extra("    Adding header: Content-Length: %s" % content.contentLength)
+				debug_extra("  Adding header: Content-Length: %s" % content.contentLength)
 				req.add_header("Content-Length", content.contentLength)
 
 		try:
@@ -1005,7 +1041,7 @@ class ImageFormatDockerRegistry(ImageFormat):
 			raise ImageSaveError(self.path, "Authentication requested (%s with realm %s), but no credentials found" % (
 					auth_request.type, auth_request.realm))
 
-		debug("  Authentication requested: %s" % (auth_request))
+		debug("Authentication requested: %s" % (auth_request))
 		if auth_request.realm.startswith("https://auth.docker.io"):
 			self.doLoginDocker(auth_request, creds)
 		else:
@@ -1016,7 +1052,7 @@ class ImageFormatDockerRegistry(ImageFormat):
 		debug("  %s %s" % (req.method, req.full_url))
 
 		if self.creds:
-			debug_extra("    Adding header: Authorization: %.80s.." % self.creds.authorization_header)
+			debug_extra("  Adding header: Authorization: %.80s.." % self.creds.authorization_header)
 			req.add_header("Authorization", self.creds.authorization_header)
 
 		return urllib.request.urlopen(req)
@@ -1097,19 +1133,8 @@ class ImageFormatDir(ImageFormat):
 		with self.open("version", "w") as f:
 			self.writeString(f, "Directory Transport Version: %s" % self.transportVersion)
 
-		with self.open("manifest.json", "w") as f:
-			self.writeManifest(f, img.manifest)
-		print("Wrote manifest")
-
-		self.copyBlob(img, img.manifest.config)
-		print("Wrote config")
-
-		for d in img.manifest.layers:
-			print("  saving layer %s" % d.mediaType)
-			if d.isExternalReference():
-				print("Skipping blob %s (external reference)" % d.digest)
-			else:
-				self.copyBlob(img, d)
+		self.saveManifest(img, img.manifest)
+		self.saveImageBlobs(img)
 
 	def parseVersion(self, f):
 		version = None
@@ -1121,7 +1146,7 @@ class ImageFormatDir(ImageFormat):
 
 			(header, value) = l.split(':', 1)
 			if header != "Directory Transport Version":
-				print("version file contains unknown header \"%s\"" % header)
+				info("version file contains unknown header \"%s\"" % header)
 				continue
 
 			if version:
@@ -1170,6 +1195,11 @@ class ImageFormatDir(ImageFormat):
 	def openBlob(self, img, d, mode = "rb"):
 		path = self.blobFilesystemPath(d)
 		return open(path, mode)
+
+	def saveManifest(self, img, mf):
+		info("Writing manifest")
+		with self.open("manifest.json", "w") as f:
+			self.writeManifest(f, mf)
 
 	def saveBlob(self, img, d, src):
 		dst = self.openBlob(img, d, "wb")
@@ -1289,22 +1319,10 @@ class ImageFormatOCIArchive(ImageFormat):
 		with self.open("oci-layout", "w") as f:
 			self.storeJSON(f, self.ociLayout)
 
-		index = ImageIndex()
-		index.manifests.append(img.manifest)
+		self.saveIndex(img, img.manifest)
+		self.saveImageBlobs(img)
 
-		with self.open("index.json", "w") as f:
-			self.writeImageIndex(f, index)
-		print("Wrote manifest")
-
-		self.copyBlob(img, img.manifest.config)
-		print("Wrote config")
-
-		for d in img.manifest.layers:
-			print("  saving layer %s" % d.mediaType)
-			if d.isExternalReference():
-				print("Skipping blob %s (external reference)" % d.digest)
-			else:
-				self.copyBlob(img, d)
+		self.close()
 
 	def parseOCILayout(self, f):
 		data = self.loadJSON(f)
@@ -1325,6 +1343,14 @@ class ImageFormatOCIArchive(ImageFormat):
 	def openBlob(self, img, d, mode = "rb"):
 		path = self.blobMemberPath(d)
 		return self.open(path, mode)
+
+	def saveManifest(self, img, mf):
+		info("Writing manifest")
+		index = ImageIndex()
+		index.manifests.append(img.manifest)
+
+		with self.open("index.json", "w") as f:
+			self.writeImageIndex(f, index)
 
 	def saveBlob(self, img, d, src):
 		with self.openBlob(img, d, "wb") as dst:
@@ -1425,6 +1451,8 @@ class Image(object):
 
 
 	def getPotentialBaseImages(self):
+		info("Checking for base images")
+
 		config = img.getConfig()
 		labels = config.config.get('Labels') or {}
 
@@ -1432,7 +1460,7 @@ class Image(object):
 		for (label, value) in labels.items():
 			if (label.startswith('org.opensuse.') or label.startswith('com.suse.')) and \
 			   label.endswith('.reference'):
-				print("This image is based on %s" % value)
+				info("  This image is based on %s" % value)
 				baseImages.add(value)
 
 		return baseImages
@@ -1648,6 +1676,54 @@ class LayerMap(object):
 
 		return l
 
+	def addImage(self, spec):
+		s = logger.incrementIndent()
+
+		try:
+			img = imageFactory.load(spec)
+		except ImageLoadError as e:
+			info("%s: %s" % (e.image, e.reason))
+			return
+
+		for d in img.manifest.layers:
+			info("Image %s layer %s (%s)" % (img.spec(), d.mediaType, d.digest))
+			layerMap.addReferencedLayer(img, d)
+
+	def addReferencedLayer(self, img, d):
+		s = logger.incrementIndent()
+
+		# For now, we try to reference layers from the image
+		# with the longest match. If our image has several layers
+		# that can be externalized, this helps to make all these
+		# external layers reference the same image.
+		generation = len(img.manifest.layers)
+
+		mediaType = MediaType(d.mediaType)
+		if not d.isImageLayer():
+			info("Image %s has layer of unknown type %s" % (img.spec(), d.mediaType))
+			return
+
+		l = self.get(d.digest)
+		if l and l.generation <= generation:
+			info("Layer already mapped")
+			return
+
+		refDest = d.asExternalReference(img)
+		info("Making external ref with mediaType %s" % refDest._parsedMediaType)
+
+		self.add(generation, d, refDest)
+
+		if d.isCompressed():
+			info("Layer is compressed, hashing uncompressed data")
+			try:
+				newDesc = d.asUncompressed(img)
+			except ImageLoadError as e:
+				info("%s: %s" % (e.image, e.reason))
+				return
+
+			info("  %s (%s)" % (newDesc.mediaType, newDesc.digest))
+			self.add(generation, newDesc, refDest)
+
 	def getReference(self, d):
 		l = self.get(d.digest)
 		if l is None:
@@ -1710,7 +1786,7 @@ if args.quiet:
 imageFactory = ImageFactory()
 imageFactory.setKeystore(Keystore())
 
-print("== Loading %s ==" % args.image)
+info("== Loading %s ==" % args.image)
 img = imageFactory.load(args.image)
 
 #
@@ -1722,86 +1798,55 @@ img = imageFactory.load(args.image)
 #  org.opensuse.*.reference
 #  com.suse.*.reference
 #
-print()
-print("== Analyzing %s for SUSE base images ==" % img.spec())
+info()
+info("== Analyzing %s for SUSE base images ==" % img.spec())
 layerMap = LayerMap()
 for baseImgSpec in img.getPotentialBaseImages():
-	import urllib.error
-	try:
-		baseImg = imageFactory.load(baseImgSpec)
-	except ImageLoadError as e:
-		print("  %s: %s" % (e.image, e.reason))
-		continue
-
-	print("Inspecting image %s" % baseImgSpec)
-	generation = len(baseImg.manifest.layers)
-	for d in baseImg.manifest.layers:
-		print("Image %s layer %s (%s)" % (baseImgSpec, d.mediaType, d.digest))
-		mediaType = MediaType(d.mediaType)
-		if not d.isImageLayer():
-			print("Image %s has layer of unknown type %s" % (baseImgSpec, d.mediaType))
-			continue
-
-		l = layerMap.get(d.digest)
-		if l and l.generation <= generation:
-			continue
-
-		refDest = d.asExternalReference(baseImg)
-		print("  Making external ref with mediaType %s" % refDest._parsedMediaType)
-
-		layerMap.add(generation, d, refDest)
-
-		if d.isCompressed():
-			print("  Layer is compressed, hashing uncompressed data")
-			try:
-				newDesc = d.asUncompressed(baseImg)
-			except ImageLoadError as e:
-				print("  %s: %s" % (e.image, e.reason))
-				continue
-
-			print("    %s (%s)" % (newDesc.mediaType, newDesc.digest))
-			layerMap.add(generation, newDesc, refDest)
+	info("Inspecting image %s" % baseImgSpec)
+	layerMap.addImage(baseImgSpec)
 
 if layerMap.isEmpty():
-	print("== Did not detect any SUSE base images, nothing to be done ==")
+	info("== Did not detect any SUSE base images, nothing to be done ==")
 	exit(0)
 
-print()
-print("== Inspecting image to replace SUSE layers with external references ==")
+info()
+info("== Inspecting image to replace SUSE layers with external references ==")
 changed = False
 for num in range(len(img.manifest.layers)):
 	d = img.manifest.layers[num]
 
-	print("Inspecting layer %d: %s (%s)" % (num, d.mediaType, d.digest))
+	info("Inspecting layer %d: %s (%s)" % (num, d.mediaType, d.digest))
 
 	mediaType = d._parsedMediaType
 
 	if not mediaType.isImageLayer():
-		print("Image layer of unknown type")
+		info("Image layer of unknown type")
 		break
 
 	reference = layerMap.getReference(d)
 
 	if reference is None and d.isCompressed():
-		print("  Layer is compressed, trying uncompressed match")
+		s = logger.incrementIndent()
+
+		info("Layer is compressed, trying uncompressed match")
 		try:
 			newDesc = d.asUncompressed(img)
 			reference = layerMap.getReference(newDesc)
 		except ImageLoadError as e:
-			print("  %s: %s" % (e.image, e.reason))
+			info("%s: %s" % (e.image, e.reason))
 
 	if reference is None:
-		print("Layer does not match any layer of any of the base images")
+		info("Layer does not match any layer of any of the base images")
 		break
 
-	print("Detected SUSE layer, converting to external reference")
-	print("  %s (%s) -> %s (%s)" % (d.digest, d.mediaType, reference.digest, reference.mediaType))
+	info("  Detected SUSE layer, converting to external reference")
+	info("    %s (%s) -> %s (%s)" % (d.digest, d.mediaType, reference.digest, reference.mediaType))
 
 	img.manifest.layers[num] = reference
 	changed = True
 
 if not changed:
-	print("== Nothing changed, did not write output image ==")
+	info("== Nothing changed, did not write output image ==")
 	exit(1)
 
 if args.output_path is not None:
@@ -1810,7 +1855,7 @@ else:
 	saverClass = ImageFormatFactory.getLoaderClass(args.output_type)
 	saver = saverClass(img.name, img.version)
 
-print()
-print("== Saving modified image to %s ==" % saver.spec())
+info()
+info("== Saving modified image to %s ==" % saver.spec())
 saver.save(img)
 exit(0)
