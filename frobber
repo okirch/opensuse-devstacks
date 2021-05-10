@@ -551,21 +551,40 @@ class ImageFormat(object):
 
 		return data
 
-	def saveImageBlobs(self, img):
-		info("Writing config")
-		self.copyBlob(img, img.manifest.config)
+	# Default save() operation
+	# We save all blobs first, and then the manifest, because that's
+	# compatible with the sequence of uploads to a docker registry.
+	def save(self, img):
+		self.savePreamble(img)
 
-		if not self.blobExists(img, img.manifest.config):
+		self.saveConfig(img, img.manifest.config)
+		self.saveImageLayers(img)
+
+		self.saveManifest(img, img.manifest)
+
+	def savePreamble(self, img):
+		pass
+
+	def saveConfig(self, img, cfg):
+		info("Writing config")
+		self.copyBlob(img, cfg)
+
+		if not self.blobExists(img, cfg):
 			raise ImageSaveError(self.spec(), "Uploaded config, but it's not available?!")
 
+	def saveImageLayers(self, img):
 		info("Writing image layers")
 		for d in img.manifest.layers:
-			s = logger.incrementIndent()
-			info("Saving layer %s (%s)" % (d.digest, d.mediaType))
-			if d.isExternalReference():
-				info("  Skipping external reference; urls=%s" % (d.urls))
-			else:
-				self.copyBlob(img, d)
+			self.saveLayer(img, d)
+
+	def saveLayer(self, img, d):
+		s = logger.incrementIndent()
+		info("Saving layer %s (%s)" % (d.digest, d.mediaType))
+		if d.isExternalReference():
+			info("  Skipping external reference; urls=%s" % (d.urls))
+		else:
+			self.copyBlob(img, d)
+
 
 	def storeJSON(self, f, obj):
 		json.dump(obj, cls = JSONObjectEncoder, fp = f, indent = "\t")
@@ -743,12 +762,6 @@ class ImageFormatDockerRegistry(ImageFormat):
 
 		return img
 
-	def save(self, img):
-		self.saveImageBlobs(img)
-
-		info("Writing manifest")
-		self.saveManifest(img, img.manifest)
-
 	def openURL(self, partialURL, mode = "r"):
 		return self.download(partialURL, mode = mode)
 
@@ -782,6 +795,7 @@ class ImageFormatDockerRegistry(ImageFormat):
 		src.tag = reference
 		src.architecture = self.architecture or "amd64"
 
+		info("Writing manifest")
 		self.uploadManifest("v2/%s/manifests/%s" % (name, reference), src)
 
 	def uploadManifest(self, partialURL, src):
@@ -1129,13 +1143,6 @@ class ImageFormatDir(ImageFormat):
 
 		return img
 
-	def save(self, img):
-		with self.open("version", "w") as f:
-			self.writeString(f, "Directory Transport Version: %s" % self.transportVersion)
-
-		self.saveManifest(img, img.manifest)
-		self.saveImageBlobs(img)
-
 	def parseVersion(self, f):
 		version = None
 
@@ -1196,6 +1203,10 @@ class ImageFormatDir(ImageFormat):
 		path = self.blobFilesystemPath(d)
 		return open(path, mode)
 
+	def savePreamble(self, img):
+		with self.open("version", "w") as f:
+			self.writeString(f, "Directory Transport Version: %s" % self.transportVersion)
+
 	def saveManifest(self, img, mf):
 		info("Writing manifest")
 		with self.open("manifest.json", "w") as f:
@@ -1253,6 +1264,7 @@ class ImageFormatOCIArchive(ImageFormat):
 
 		self._th = False
 		self._writing = False
+		self._lastBlobSaved = None
 
 		self.ociLayout = {
 			'imageLayoutVersion': '1.0.0'
@@ -1308,7 +1320,7 @@ class ImageFormatOCIArchive(ImageFormat):
 	def openManifest(self, img, d):
 		return self.openBlob(img, d)
 
-	def save(self, img):
+	def savePreamble(self, img):
 		import tarfile
 
 		self.close()
@@ -1318,11 +1330,6 @@ class ImageFormatOCIArchive(ImageFormat):
 
 		with self.open("oci-layout", "w") as f:
 			self.storeJSON(f, self.ociLayout)
-
-		self.saveIndex(img, img.manifest)
-		self.saveImageBlobs(img)
-
-		self.close()
 
 	def parseOCILayout(self, f):
 		data = self.loadJSON(f)
@@ -1352,6 +1359,9 @@ class ImageFormatOCIArchive(ImageFormat):
 		with self.open("index.json", "w") as f:
 			self.writeImageIndex(f, index)
 
+	def blobExists(self, img, d):
+		return self._lastBlobSaved == d.digest
+
 	def saveBlob(self, img, d, src):
 		with self.openBlob(img, d, "wb") as dst:
 			while True:
@@ -1361,6 +1371,8 @@ class ImageFormatOCIArchive(ImageFormat):
 				dst.write(b)
 
 			dst.flush()
+
+		self._lastBlobSaved = d.digest
 
 class ImageFormatFactory(object):
 	defaultRegistryURL = "https://registry.opensuse.org"
@@ -1754,6 +1766,8 @@ def build_arg_parser():
 	parser.add_argument('image', metavar='IMAGE',
 			    help='the image to transform')
 
+	parser.add_argument('--force', default = False, action = 'store_true',
+			    help = 'Always output an image, even if it\'s identical to the original')
 	parser.add_argument('--quiet', default = False, action = 'store_true',
 			    help = 'Disable most output')
 	parser.add_argument('--verbose', default = False, action = 'store_true',
@@ -1805,7 +1819,7 @@ for baseImgSpec in img.getPotentialBaseImages():
 	info("Inspecting image %s" % baseImgSpec)
 	layerMap.addImage(baseImgSpec)
 
-if layerMap.isEmpty():
+if layerMap.isEmpty() and not args.force:
 	info("== Did not detect any SUSE base images, nothing to be done ==")
 	exit(0)
 
@@ -1835,6 +1849,8 @@ for num in range(len(img.manifest.layers)):
 		except ImageLoadError as e:
 			info("%s: %s" % (e.image, e.reason))
 
+		del s
+
 	if reference is None:
 		info("Layer does not match any layer of any of the base images")
 		break
@@ -1845,7 +1861,7 @@ for num in range(len(img.manifest.layers)):
 	img.manifest.layers[num] = reference
 	changed = True
 
-if not changed:
+if not changed and not args.force:
 	info("== Nothing changed, did not write output image ==")
 	exit(1)
 
