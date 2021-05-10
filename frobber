@@ -34,6 +34,49 @@ import urllib.parse
 import urllib.request
 from urllib.error import HTTPError
 
+class LogDevice:
+	def __init__(self):
+		self.level = 0
+		self._facLevel = 0
+
+	def log(self, level, msg):
+		if level <= self.level:
+			print(msg)
+
+	def nextFacility(self):
+		l = self._facLevel
+		self._facLevel += 1
+		return l
+
+	def enable(self, level):
+		if level > self.level:
+			self.level = level
+
+	def disable(self, level):
+		if level <= self.level:
+			self.level = level - 1
+
+	def isEnabled(self, level):
+		return level <= self.level
+
+class LogFacility:
+	def __init__(self, logDevice):
+		self.device = logDevice
+		self.level = logDevice.nextFacility()
+
+	def enable(self):
+		self.device.enable(self.level)
+
+	def disable(self):
+		self.device.disable(self.level)
+
+	@property
+	def enabled(self):
+		return self.device.isEnabled(self.level)
+
+	def __call__(self, msg):
+		self.device.log(self.level, msg)
+
 class ImageLoadError(Exception):
 	def __init__(self, image, reason):
 		self.image = image
@@ -211,9 +254,6 @@ class Keystore(urllib.request.HTTPPasswordMgr):
 		self._stores = []
 		self._stores.append(DockerPlaintextKeystore())
 
-	def find_user_password(realm, authuri):
-		print("@@@ find_user_password(%s, %s)" % (realm, authuri))
-
 	def get(self, host):
 		for s in self._stores:
 			creds = s.get(host)
@@ -224,6 +264,59 @@ class Keystore(urllib.request.HTTPPasswordMgr):
 class AuthenticationRequired(Exception):
 	def __init__(self, auth_req):
 		self.auth_req = auth_req
+
+class HTTP:
+	@staticmethod
+	def logResponse(req, fp, code, msg, headers, logfn):
+		if not debug_extra.enabled:
+			return
+
+		logfn("  HTTP response %d (%s)" % (code, msg))
+		for k, v in headers.items():
+			logfn("    %s: %s" % (k, v))
+
+		HTTP.logBody(fp, headers, logfn)
+
+	@staticmethod
+	def logError(req, fp, code, msg, headers, logfn):
+		if not debug_extra.enabled:
+			return
+
+		logfn("  Received HTTP error %d (%s)" % (code, msg))
+		for k, v in headers.items():
+			logfn("    %s: %s" % (k, v))
+
+		if headers.get('content-type') == 'application/json':
+			try:
+				data = json.load(fp)
+			except:
+				logfn("  Unable to parse JSON body")
+				return
+
+			logfn("  JSON body")
+			for k, v in data.items():
+				logfn("    %s: %s" % (k, v))
+
+	def logBody(fp, headers, logfn):
+		try:
+			pos = fp.tell()
+		except:
+			logfn("  Not trying to parse body (stream is not seekable)")
+			return
+
+		contentType = headers.get('content-type')
+		if contentType == 'application/json' or \
+		   contentType.endswith('+json'):
+			try:
+				data = json.load(fp)
+				fp.seek(pos)
+			except:
+				logfn("  Unable to parse JSON body")
+				return
+
+			logfn("  JSON body")
+			for k, v in data.items():
+				logfn("    %s: %s" % (k, v))
 
 # When trying to push to docker registry w/o authentication, it will return a 401 error
 # with the following Www-Authenticate header:
@@ -264,27 +357,14 @@ class BearerAuthHandler(urllib.request.BaseHandler):
 	@staticmethod
 	def install():
 		if not BearerAuthHandler.installed or True:
-			print("    Installing urllib handler for Bearer authentication")
+			debug_extra("    Installing urllib handler for Bearer authentication")
 			authhandler = BearerAuthHandler()
 			opener = urllib.request.build_opener(authhandler)
 			urllib.request.install_opener(opener)
 			BearerAuthHandler.installed = True
 
 	def http_error_401(self, req, fp, code, msg, headers):
-		print("  Received HTTP error %d (%s)" % (code, msg))
-		for k, v in headers.items():
-			print("    %s: %s" % (k, v))
-		if headers.get('content-type') == 'application/json':
-			try:
-				data = json.load(fp)
-			except:
-				print("  Unable to parse JSON body")
-				data = None
-
-			if data:
-				print("  JSON body")
-				for k, v in data.items():
-					print("    %s: %s" % (k, v))
+		HTTP.logError(req, fp, code, msg, headers, logfin = debug_extra)
 
 		auth_header = headers.get('www-authenticate')
 		if not auth_header:
@@ -297,7 +377,7 @@ class BearerAuthHandler(urllib.request.BaseHandler):
 		# print("Parsed auth req %s" % auth_req)
 
 		if auth_req.type != 'Bearer':
-			print("  Ignoring auth header with type \"%s\"" % auth_req.type)
+			debug("  Ignoring auth header with type \"%s\"" % auth_req.type)
 			return
 
 		# An error indicates we've been presenting a Bearer token, but it was
@@ -402,7 +482,9 @@ class ImageFormat(object):
 	def pickManifestFromIndex(self, mfList):
 		# Find the manifest matching the desired architecture
 		desc = mfList.find(architecture = self.architecture or "amd64")
-		assert(desc and desc.isManifest())
+		if not desc or not desc.isManifest:
+			print("  Index does not contain a compatible manifest")
+			return None
 
 		print("  Using manifest for %s: %s" % (desc.platformString(), desc.digest))
 		return desc
@@ -526,8 +608,8 @@ class HTTPContent(object):
 		self.contentType = contentType
 
 		if contentType == "application/json":
-			print("  Sending JSON data:")
-			print(json.dumps(content, cls = JSONObjectEncoder, indent = "\t"))
+			debug_extra("  Sending JSON data:")
+			debug_extra(json.dumps(content, cls = JSONObjectEncoder, indent = "\t"))
 			data = json.dumps(content, cls = JSONObjectEncoder).encode('utf-8')
 			# print("Content %s" % data)
 		elif contentType == "application/octet-stream":
@@ -581,7 +663,7 @@ class ImageFormatDockerRegistry(ImageFormat):
 		if not url:
 			raise LoginError(self.spec(), "Invalid login url \"%s\"" % creds.url)
 
-		print("Logging into %s" % creds.url)
+		debug("Logging into %s" % creds.url)
 
 		resp = self.httpPost(url, "application/json", data, mode = "r")
 		with resp as f:
@@ -591,7 +673,7 @@ class ImageFormatDockerRegistry(ImageFormat):
 
 			creds.auth_token = auth_reply['token']
 
-		print("  Successfully authenticated")
+		debug("  Successfully authenticated")
 		self.creds = creds
 
 	def load(self):
@@ -602,6 +684,8 @@ class ImageFormatDockerRegistry(ImageFormat):
 			mfList = self.parseImageIndex(f)
 
 		desc = self.pickManifestFromIndex(mfList)
+		if not desc:
+			raise FileNotFoundError("Cannot find image for %s:%s" % (name, version))
 
 		img = Image(name, version)
 
@@ -696,7 +780,7 @@ class ImageFormatDockerRegistry(ImageFormat):
 
 		req = urllib.request.Request(realm + "?" + auth_request.queryString, method = "GET")
 
-		print("  %s %s" % (req.method, req.full_url))
+		debug_extra("  %s %s" % (req.method, req.full_url))
 
 		# Authorization: Bearer foobZEGO==
 		upass = "%s:%s" % (creds.user, creds.password)
@@ -720,7 +804,7 @@ class ImageFormatDockerRegistry(ImageFormat):
 
 			self.displayJWT(creds.auth_token)
 
-		print("  Successfully authenticated (issued %s, expires in %s seconds)" % (creds.issued_at, creds.expires_in))
+		debug("  Successfully authenticated (issued %s, expires in %s seconds)" % (creds.issued_at, creds.expires_in))
 		self.creds = creds
 
 	def displayJWT(self, token):
@@ -763,7 +847,7 @@ class ImageFormatDockerRegistry(ImageFormat):
 		if cache:
 			f = cache.open(mode)
 			if f:
-				print("  Using cached data for %s" % url)
+				debug("  Using cached data for %s" % url)
 				return f
 
 		print("Downloading %s" % url)
@@ -796,7 +880,7 @@ class ImageFormatDockerRegistry(ImageFormat):
 		url = self.makeURL(partialURL)
 
 		# POST /v2/<name>/blobs/uploads/
-		print("Uploading to %s" % url.geturl())
+		debug("Uploading to %s" % url.geturl())
 		auth_request = None
 		fail_reason = None
 
@@ -864,7 +948,7 @@ class ImageFormatDockerRegistry(ImageFormat):
 
 		url = self.makeURL(partialURL).geturl()
 
-		print("Checking %s" % url)
+		debug("Checking %s" % url)
 
 		req = urllib.request.Request(url, method = "HEAD")
 
@@ -874,14 +958,13 @@ class ImageFormatDockerRegistry(ImageFormat):
 			print("HEAD returned failure: %s" % str(e))
 			return False
 
-		print(resp)
 		if resp.status != 200:
 			return False
 
 		return True
 
 	def urlopen(self, req, content = None):
-		print("  %s %s" % (req.method, req.full_url))
+		debug("  %s %s" % (req.method, req.full_url))
 
 		try:
 			resp = self._urlopen(req, content)
@@ -893,34 +976,22 @@ class ImageFormatDockerRegistry(ImageFormat):
 		return resp
 	
 	def showResponse(self, resp, showData = False):
-		# return
-
-		print("  Response %s %s" % (resp.status, resp.reason))
-		for k, v in resp.headers.items():
-			print("    %s: %s" % (k, v))
-
-		if showData and False:
-			if resp.headers['content-type'] == 'application/json':
-				print(resp.file)
-				print(resp.file.read())
-				data = json.load(resp.file)
-				print("  JSON body")
-				for k, v in data.items():
-					print("    %s: %s" % (k, v))
+		HTTP.logResponse(None, resp.fp, resp.status, resp.reason, resp.headers, logfn = debug_extra)
+		return
 
 	def _urlopen(self, req, content):
 		BearerAuthHandler.install()
 
 		if self.creds:
-			print("    Adding header: Authorization: %.80s.." % self.creds.authorization_header)
+			debug_extra("    Adding header: Authorization: %.80s.." % self.creds.authorization_header)
 			req.add_header("Authorization", self.creds.authorization_header)
 
 		if content:
-			print("    Adding header: Content-Type: %s" % content.contentType)
+			debug_extra("    Adding header: Content-Type: %s" % content.contentType)
 			req.add_header("Content-Type", content.contentType)
 
 			if content.contentLength >= 0:
-				print("    Adding header: Content-Length: %s" % content.contentLength)
+				debug_extra("    Adding header: Content-Length: %s" % content.contentLength)
 				req.add_header("Content-Length", content.contentLength)
 
 		try:
@@ -934,18 +1005,18 @@ class ImageFormatDockerRegistry(ImageFormat):
 			raise ImageSaveError(self.path, "Authentication requested (%s with realm %s), but no credentials found" % (
 					auth_request.type, auth_request.realm))
 
-		print("  Authentication requested: %s" % (auth_request))
+		debug("  Authentication requested: %s" % (auth_request))
 		if auth_request.realm.startswith("https://auth.docker.io"):
 			self.doLoginDocker(auth_request, creds)
 		else:
 			# FIXME: -> RegistryError
 			raise ImageSaveError(self.path, "Don't know how to authenticate (request=%s)" % auth_req)
 
-		print("Retrying HTTP request")
-		print("  %s %s" % (req.method, req.full_url))
+		debug("Retrying HTTP request")
+		debug("  %s %s" % (req.method, req.full_url))
 
 		if self.creds:
-			print("    Adding header: Authorization: %.80s.." % self.creds.authorization_header)
+			debug_extra("    Adding header: Authorization: %.80s.." % self.creds.authorization_header)
 			req.add_header("Authorization", self.creds.authorization_header)
 
 		return urllib.request.urlopen(req)
@@ -1607,10 +1678,34 @@ def build_arg_parser():
 	parser.add_argument('image', metavar='IMAGE',
 			    help='the image to transform')
 
+	parser.add_argument('--quiet', default = False, action = 'store_true',
+			    help = 'Disable most output')
+	parser.add_argument('--verbose', default = False, action = 'store_true',
+			    help = 'Enable verbose output')
+	parser.add_argument('--debug', default = False, action = 'store_true',
+			    help = 'Enable debug output')
+	parser.add_argument('--debug-extra', default = False, action = 'store_true',
+			    help = 'Enable extra verbose debug output')
+
 	return parser
 
 parser = build_arg_parser()
 args = parser.parse_args()
+
+logger = LogDevice()
+info = LogFacility(logger)
+verbose = LogFacility(logger)
+debug = LogFacility(logger)
+debug_extra = LogFacility(logger)
+
+if args.debug_extra:
+	debug_extra.enable()
+if args.debug:
+	debug.enable()
+if args.verbose:
+	verbose.enable()
+if args.quiet:
+	info.disable()
 
 imageFactory = ImageFactory()
 imageFactory.setKeystore(Keystore())
